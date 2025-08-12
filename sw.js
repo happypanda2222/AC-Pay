@@ -1,4 +1,4 @@
-const CACHE = 'ac-pay-v1';
+const CACHE = 'ac-pay-v1-2';
 const ASSETS = [
   './',
   './index.html',
