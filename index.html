@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a84ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+  <title>AC Pay Calculator (iPhone)</title>
+  <style>
+    :root{ --bg:#0b0c0f; --card:#151821; --muted:#9aa3b2; --acc:#0a84ff; --txt:#e9edf1; --mono:"Menlo",monospace; }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+    .wrap{max-width:980px;margin:0 auto;padding:12px 14px 40px 14px}
+    h1{font-size:22px;margin:8px 0 14px 0}
+    .card{background:var(--card);border-radius:14px;padding:12px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    select,input[type=number]{width:100%;padding:10px;border-radius:10px;border:1px solid #2a2f3b;background:#0f1218;color:var(--txt)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+    @media (max-width:760px){.row,.row-3,.row-4{grid-template-columns:1fr}}
+    .slider{display:flex;align-items:center;gap:10px}
+    input[type=range]{width:100%}
+    .btn{background:var(--acc);color:white;border:none;border-radius:12px;padding:12px 14px;font-weight:600}
+    .btn:active{opacity:.9}
+    .out{white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;background:#0d0f14;border-radius:10px;padding:12px;margin-top:12px}
+    .muted{color:var(--muted)}
+    .tog{display:flex;gap:8px;align-items:center}
+    .badge{display:inline-block;background:#0f1218;border:1px solid #2a2f3b;border-radius:999px;padding:4px 8px;color:var(--muted);font-size:12px;margin-left:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>AC Pay Calculator — iPhone</h1>
+    <div class="card">
+      <div class="row-4">
+        <div>
+          <label>Seat</label>
+          <select id="seat">
+            <option>CA</option>
+            <option>FO</option>
+            <option>RP</option>
+          </select>
+        </div>
+        <div>
+          <label>Aircraft</label>
+          <select id="ac"></select>
+        </div>
+        <div>
+          <label>Year</label>
+          <input id="year" type="number" min="2023" max="2031" value="2025">
+        </div>
+        <div>
+          <label>Step (Jan 1)</label>
+          <input id="step" type="number" min="1" max="12" value="1">
+        </div>
+      </div>
+      <div class="row-4" style="margin-top:10px">
+        <div>
+          <label>Province/Territory</label>
+          <select id="prov"></select>
+        </div>
+        <div>
+          <label>Avg monthly credit hours</label>
+          <input id="avgHrs" type="number" min="0" max="200" step="0.25" value="75">
+        </div>
+        <div class="tog">
+          <input id="tie" type="checkbox" checked>
+          <label for="tie">Tie Year/Step</label>
+        </div>
+        <div class="tog">
+          <input id="xlr" type="checkbox">
+          <label for="xlr">XLR</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="slider">
+          <label style="min-width:54px">ESOP</label>
+          <input id="esop" type="range" min="2" max="10" value="10" step="1">
+          <div class="badge"><span id="esopPct">10%</span></div>
+        </div>
+        <button id="calc" class="btn">Calculate</button>
+      </div>
+      <div class="out" id="out"></div>
+      <div class="muted" style="margin-top:8px">
+        Notes: Pension yrs 1–2 = 6%, yrs 3–5 = 6.5%, yrs 6+ = 7% (from DOH 2024‑08‑07). Pay tables switch Sep 30; step progression Nov 10. ESOP is % of gross, after‑tax; cap $30,000; company match 30% taxed and added back after tax. A320 XLR +$2.46/hr (FO steps 1–2 excluded).
+      </div>
+    </div>
+  </div>
+  <script type="module" src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+    }
+  </script>
+</body>
+</html>
