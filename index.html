@@ -26,7 +26,6 @@
     .btn{background:var(--acc);color:white;border:none;border-radius:12px;padding:12px 14px;font-weight:600}
     .btn:active{opacity:.9}
     .out{white-space:pre-wrap;font-family:var(--mono);font-size:13px;background:#0d0f14;border-radius:10px;padding:12px;margin-top:12px;line-height:1.35}
-    .muted{color:var(--muted)}
     .tog{display:flex;gap:8px;align-items:center}
     .badge{display:inline-block;background:#0f1218;border:1px solid #2a2f3b;border-radius:999px;padding:4px 8px;color:var(--muted);font-size:12px;margin-left:6px}
   </style>
@@ -39,14 +38,17 @@
         <div>
           <label>Seat</label>
           <select id="seat">
-            <option>FO</option>
+            <option selected>FO</option>
             <option>CA</option>
             <option>RP</option>
           </select>
         </div>
         <div>
           <label>Aircraft</label>
-          <select id="ac"></select>
+          <select id="ac">
+            <option>777</option><option>787</option><option>330</option><option>767</option>
+            <option selected>320</option><option>737</option><option>220</option>
+          </select>
         </div>
         <div>
           <label>Year</label>
@@ -66,7 +68,10 @@
       <div class="row-4" style="margin-top:10px">
         <div>
           <label>Province/Territory</label>
-          <select id="prov"></select>
+          <select id="prov">
+            <option>AB</option><option>BC</option><option selected>MB</option><option>NB</option><option>NL</option><option>NS</option>
+            <option>NT</option><option>NU</option><option>ON</option><option>PE</option><option>QC</option><option>SK</option><option>YT</option>
+          </select>
         </div>
         <div>
           <label>Avg monthly credit hours</label>
