@@ -1,12 +1,11 @@
 // AC Pay Calculator — iPhone (vanilla JS, PWA-ready)
+// Defaults: FO, 320, 2025, MB, 80 hrs
 const DOH = new Date('2024-08-07T00:00:00Z');
 const PROGRESSION = {m:11, d:10};  // Nov 10
 const SWITCH = {m:9, d:30};        // Sep 30
 const AIRCRAFT_ORDER = ["777","787","330","767","320","737","220"];
-const SEATS = ["CA","FO","RP"];
 
-// Pay tables 2023–2026 + projections (2027–2031) identical to desktop app...
-/* (shortened explanation) */
+// Pay tables (2023–2026) + projections (2027–2031) and tax data identical to prior build:
 const PAY_TABLES = {
   2023: { CA: { "777":{1:365.60,2:369.28,3:372.99,4:376.75,5:380.54,6:384.38,7:388.26,8:392.18,9:396.14,10:400.14,11:404.18,12:408.27},
                 "787":{1:336.02,2:339.40,3:342.81,4:346.27,5:349.76,6:353.28,7:356.85,8:360.45,9:364.09,10:367.77,11:371.48,12:375.23},
@@ -68,20 +67,8 @@ const PAY_TABLES = {
                 "767":{1:347.39,2:350.88,3:354.41,4:357.98,5:361.58,6:365.23,7:368.92,8:372.64,9:376.40,10:380.21,11:384.05,12:387.92},
                 "320":{1:302.08,2:305.12,3:308.19,4:311.29,5:314.43,6:317.60,7:320.80,8:324.04,9:327.32,10:330.62,11:333.96,12:337.33},
                 "737":{1:302.08,2:305.12,3:308.19,4:311.29,5:314.43,6:317.60,7:320.80,8:324.04,9:327.32,10:330.62,11:333.96,12:337.33},
-                "220":{1:296.23,2:299.20,3:302.21,4:305.26,5:308.33,6:311.44,7:314.58,8:317.76,9:320.97,10:324.21,11:327.49,12:330.79} },
-          FO: { "777":{1:94.62,2:102.54,3:155.24,4:167.40,5:233.30,6:242.14,7:251.13,8:260.28,9:269.60,10:279.07,11:288.71,12:298.51},
-                "787":{1:94.62,2:102.54,3:142.68,4:153.86,5:214.42,6:222.54,7:230.81,8:239.22,9:247.78,10:256.49,11:265.35,12:274.36},
-                "330":{1:94.62,2:102.54,3:139.94,4:150.90,5:210.30,6:218.27,7:226.38,8:234.63,9:243.02,10:251.56,11:260.25,12:269.09},
-                "767":{1:94.62,2:102.54,3:131.13,4:141.40,5:197.06,6:204.53,7:212.13,8:219.86,9:227.72,10:235.73,11:243.87,12:252.15},
-                "320":{1:94.62,2:102.54,3:129.44,4:138.53,5:176.08,6:182.62,7:189.27,8:196.05,9:202.94,10:209.94,11:217.07,12:224.33},
-                "737":{1:94.62,2:102.54,3:129.44,4:138.53,5:176.08,6:182.62,7:189.27,8:196.05,9:202.94,10:209.94,11:217.07,12:224.33},
-                "220":{1:94.62,2:102.54,3:126.93,4:135.84,5:172.67,6:179.08,7:185.61,8:192.25,9:199.00,10:205.87,11:212.87,12:219.98} },
-          RP: { "777":{1:94.62,2:102.54,3:119.58,4:129.26,5:158.39,6:164.31,7:170.33,8:176.46,9:182.70,10:189.05,11:193.23,12:197.48},
-                "787":{1:94.62,2:102.54,3:109.90,4:118.80,5:145.57,6:151.01,7:156.55,8:162.18,9:167.92,10:173.75,11:177.60,12:181.50},
-                "330":{1:94.62,2:102.54,3:107.79,4:116.52,5:142.77,6:148.11,7:153.54,8:159.07,9:164.69,10:170.41,11:174.18,12:178.01} }
-        },
+                "220":{1:296.23,2:299.20,3:302.21,4:305.26,5:308.33,6:311.44,7:314.58,8:317.76,9:320.97,10:324.21,11:327.49,12:330.79} }
 };
-
 const RAISES = {2027: 1.08, 2028: 1.08*1.04, 2029: 1.08*1.04*1.04, 2030: 1.08*1.04*1.04*1.04};
 [2027,2028,2029,2030,2031].forEach(y=>{
   const factor = (y===2031) ? RAISES[2030] : RAISES[y];
@@ -99,7 +86,7 @@ const RAISES = {2027: 1.08, 2028: 1.08*1.04, 2029: 1.08*1.04*1.04, 2030: 1.08*1.
   PAY_TABLES[y] = proj;
 });
 
-// Tax data
+// Tax data 2025
 const FED = { brackets:[[57375,.145],[114750,.205],[177882,.26],[253414,.29],[Infinity,.33]],
               bpa_base:14538,bpa_additional:1591,bpa_addl_start:177882,bpa_addl_end:253414 };
 const PROV = {
@@ -122,6 +109,8 @@ const QPP = {ympe:71300,yampe:81200,ybe:3500, rate_base_total:.064, rate_qpp2:.0
 const EI = {mie:65700, rate:.0164, rate_qc:.0131, max_prem:1077.48, max_prem_qc:860.67};
 const HEALTH_MO = 58.80;
 
+// Helpers
+const clampStep = s => Math.max(1, Math.min(12, s));
 function federalBPA2025(income){
   const b=FED;
   let addl=0;
@@ -148,7 +137,6 @@ function pensionRateOnDate(d){
   if (years<5) return 0.065;
   return 0.07;
 }
-const clampStep = s => Math.max(1, Math.min(12, s));
 function stepOnJan1(selectedStep, tieOn, year){ return tieOn ? clampStep((year-2025)+1) : clampStep(selectedStep); }
 function rateFor(seat, ac, year, step, xlr){
   const table = PAY_TABLES[year][seat];
@@ -171,6 +159,7 @@ function yearSegments(year, stepJan1){
 }
 function daysInclusive(a,b){ return Math.round((b-a)/86400000)+1; }
 function topRate(amount, brackets){ for (const [cap,rate] of brackets){ if (amount<=cap) return rate; } return brackets[brackets.length-1][1]; }
+
 function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,province,esopPct}){
   const stepJan1=stepOnJan1(stepInput,tieOn,year);
   const segs=yearSegments(year, stepJan1);
@@ -230,7 +219,7 @@ function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,provi
   return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
 }
 
-// ---- UI wiring ----
+// ---------- UI Wire-up ----------
 const seatEl = document.getElementById('seat');
 const acEl   = document.getElementById('ac');
 const yearEl = document.getElementById('year');
@@ -251,31 +240,80 @@ function refreshAircraft(){
   for (const a of list){
     const opt=document.createElement('option'); opt.textContent=a; acEl.appendChild(opt);
   }
+  if (seat !== 'RP'){ acEl.value = '320'; }
 }
+
 function populateProvinces(){
   Object.keys(PROV).sort().forEach(k=>{
     const opt=document.createElement('option'); opt.value=k; opt.textContent=k; provEl.appendChild(opt);
   });
   provEl.value='MB';
 }
-function tieYearStepFromYear(){ if (!tieEl.checked) return; stepEl.value = Math.max(1, Math.min(12, (+yearEl.value-2025)+1)); }
-function tieYearStepFromStep(){ if (!tieEl.checked) return; yearEl.value = Math.max(2023, Math.min(2031, 2024 + Math.max(1, Math.min(12, +stepEl.value)))); }
-seatEl.addEventListener('change', refreshAircraft);
-yearEl.addEventListener('change', tieYearStepFromYear);
-stepEl.addEventListener('change', tieYearStepFromStep);
+
+function tieYearStepFromYear(){ if (!tieEl.checked) return; stepEl.value = String(Math.max(1, Math.min(12, (+yearEl.value-2025)+1))); }
+function tieYearStepFromStep(){ if (!tieEl.checked) return; yearEl.value = String(Math.max(2023, Math.min(2031, 2024 + Math.max(1, Math.min(12, +stepEl.value))))); }
+
+function money(x){ return '$' + x.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function renderOutput(res, params){
+  const {seat, ac, year, province, esopPct, avgMonthlyHours, xlrOn, tieOn} = params;
+  const m = res.monthly;
+  const header = `${seat} · ${ac} · ${province} · Year ${year} · Step Jan 1=${res.step_jan1} · ESOP ${esopPct}% · ${avgMonthlyHours.toFixed(2)} hrs/mo · XLR ${xlrOn?'ON':'OFF'} · Tie ${tieOn?'ON':'OFF'}`;
+  const annual = [
+    'ANNUAL',
+    `  Gross              ${money(res.gross)}`,
+    `  Pension (pre-tax) -${money(res.pension)}`,
+    `  Tax (fed+prov)    -${money(res.tax)}`,
+    `  CPP/QPP+CPP2      -${money(res.cpp)}`,
+    `  EI                -${money(res.ei)}`,
+    `  Health            -${money(res.health)}`,
+    `  ESOP (${esopPct}%)     -${money(res.esop)}`,
+    `  + ESOP match (net)+${money(res.esop_match_after_tax)}`,
+    `  NET                ${money(res.net)}`,
+  ].join('\n');
+  const monthly = [
+    'MONTHLY',
+    `  Gross ${money(m.gross)}`,
+    `  Net   ${money(m.net)}`,
+    `  Tax   ${money(m.income_tax)}    CPP/QPP ${money(m.cpp)}    EI ${money(m.ei)}`,
+    `  Health ${money(m.health)}    Pension ${money(m.pension)}`,
+    `  ESOP ${money(m.esop)}    ESOP match (net) ${money(m.esop_match_net)}`
+  ].join('\n');
+  const auditLines = res.audit.map(seg=>{
+    const fmt = d=> d.toISOString().slice(0,10);
+    return `  ${fmt(seg.start)} → ${fmt(seg.end)} | tbl ${seg.pay_table_year} | step ${String(seg.step).padStart(2,' ')} | $${seg.hourly.toFixed(2)}/hr | ${seg.hours.toFixed(2)} hrs | ${money(seg.segment_gross)}`;
+  }).join('\n');
+  const audit = 'AUDIT (date ranges)\n' + auditLines;
+  outEl.textContent = [header, '', annual, '', monthly, '', audit].join('\n');
+}
+
+seatEl.addEventListener('change', ()=>{ refreshAircraft(); });
+yearEl.addEventListener('change', ()=>{ tieYearStepFromYear(); });
+stepEl.addEventListener('change', ()=>{ tieYearStepFromStep(); });
 esopEl.addEventListener('input', ()=>{ esopPctEl.textContent = esopEl.value + '%'; });
+
 calcBtn.addEventListener('click', ()=>{
   try{
-    const res = computeAnnual({ seat:seatEl.value, ac:acEl.value, year:+yearEl.value, stepInput:+stepEl.value, tieOn:!!tieEl.checked, xlrOn:!!xlrEl.checked, avgMonthlyHours:+avgEl.value, province:provEl.value, esopPct:+esopEl.value });
-    const sel = `Selection: ${seatEl.value} | ${acEl.value} | Year ${+yearEl.value} | Step Jan 1 = ${res.step_jan1} | XLR=${xlrEl.checked?'ON':'OFF'} | Tie Year/Step=${tieEl.checked?'ON':'OFF'} | Province=${provEl.value} | ESOP=${+esopEl.value}% | Avg Hrs/Month=${(+avgEl.value).toFixed(2)}`;
-    const auditLines = res.audit.map(seg=>{
-      const fmt = d=> d.toISOString().slice(0,10);
-      return `  ${fmt(seg.start)} → ${fmt(seg.end)}: table ${seg.pay_table_year} | step ${String(seg.step).padStart(2,' ')} | hourly $${seg.hourly.toFixed(2)} | days ${seg.days} | hours ${seg.hours.toFixed(2)} | gross $${seg.segment_gross.toFixed(2)}`;
-    }).join('\n');
-    const m=res.monthly;
-    const output = [ sel, '', 'AUDIT — Pay rate segments used:', auditLines, '', 'ANNUAL totals:', `  Gross:           $${res.gross.toFixed(2)}`, `  Pension (pre-tax): -$${res.pension.toFixed(2)}`, `  Tax (fed+prov):   -$${res.tax.toFixed(2)}`, `  CPP/QPP+CPP2:     -$${res.cpp.toFixed(2)}`, `  EI:               -$${res.ei.toFixed(2)}`, `  Health:           -$${res.health.toFixed(2)}`, `  ESOP (${+esopEl.value}% of gross, cap $30,000): -$${res.esop.toFixed(2)}`, `  + ESOP company match (after tax): +$${res.esop_match_after_tax.toFixed(2)}`, `  NET:              $${res.net.toFixed(2)}`, '', 'MONTHLY (÷12):', `  Gross $${m.gross.toFixed(2)} | Net $${m.net.toFixed(2)} | Tax $${m.income_tax.toFixed(2)} | CPP/QPP $${m.cpp.toFixed(2)} | EI $${m.ei.toFixed(2)} | Health $${m.health.toFixed(2)} | Pension $${m.pension.toFixed(2)} | ESOP $${m.esop.toFixed(2)} | ESOP match (net) $${m.esop_match_net.toFixed(2)}` ].join('\n');
-    outEl.textContent = output;
-  }catch(err){ outEl.textContent = 'Error: ' + err.message; }
+    const params = {
+      seat: seatEl.value,
+      ac: acEl.value,
+      year: +yearEl.value,
+      stepInput: +stepEl.value,
+      tieOn: !!tieEl.checked,
+      xlrOn: !!xlrEl.checked,
+      avgMonthlyHours: +avgEl.value,
+      province: provEl.value,
+      esopPct: +esopEl.value
+    };
+    const res = computeAnnual(params);
+    renderOutput(res, params);
+  }catch(err){
+    outEl.textContent = 'Error: ' + err.message;
+  }
 });
+
 // init
-refreshAircraft(); populateProvinces(); tieYearStepFromYear(); esopPctEl.textContent = esopEl.value + '%';
+refreshAircraft();
+populateProvinces();
+tieYearStepFromYear();
+esopPctEl.textContent = esopEl.value + '%';
