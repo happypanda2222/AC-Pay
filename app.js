@@ -1,12 +1,12 @@
 'use strict';
-// Constants
+// --- Constants & Config ---
 const DOH = new Date('2024-08-07T00:00:00Z');
 const PROGRESSION = {m:11, d:10};
 const SWITCH = {m:9, d:30};
 const AIRCRAFT_ORDER = ["777","787","330","767","320","737","220"];
 const HEALTH_MO = 58.80;
 
-// Pay tables 2023–2026
+// --- Pay tables 2023–2026 (from contract) ---
 const PAY_TABLES = {
   2023: { CA: { "777":{1:365.60,2:369.28,3:372.99,4:376.75,5:380.54,6:384.38,7:388.26,8:392.18,9:396.14,10:400.14,11:404.18,12:408.27},
                 "787":{1:336.02,2:339.40,3:342.81,4:346.27,5:349.76,6:353.28,7:356.85,8:360.45,9:364.09,10:367.77,11:371.48,12:375.23},
@@ -82,7 +82,7 @@ const PAY_TABLES = {
         }
 };
 
-// Build projections 2027–2031 (8/4/4/4, 2031 = 2030 level)
+// --- Projections 2027–2031 ---
 (function buildProjections(){
   const raises = {2027:1.08, 2028:1.08*1.04, 2029:1.08*1.04*1.04, 2030:1.08*1.04*1.04*1.04};
   [2027,2028,2029,2030,2031].forEach(y=>{
@@ -95,7 +95,7 @@ const PAY_TABLES = {
   });
 })();
 
-// 2025 tax data
+// --- 2025 Tax Data ---
 const FED = { brackets:[[57375,0.145],[114750,0.205],[177882,0.26],[253414,0.29],[Infinity,0.33]],
               bpa_base:14538,bpa_additional:1591,bpa_addl_start:177882,bpa_addl_end:253414 };
 const PROV = {
@@ -117,7 +117,7 @@ const CPP = {ympe:71300,yampe:81200,ybe:3500, rate_base:0.0595, rate_cpp2:0.04, 
 const QPP = {ympe:71300,yampe:81200,ybe:3500, rate_base_total:0.064, rate_qpp2:0.04};
 const EI = {mie:65700, rate:0.0164, rate_qc:0.0131, max_prem:1077.48, max_prem_qc:860.67};
 
-// Helpers
+// --- Helpers ---
 function clampStep(s){ s=+s; if (s<1) return 1; if (s>12) return 12; return s; }
 function federalBPA2025(income){
   const b=FED; let addl=0;
@@ -164,14 +164,14 @@ function yearSegments(year, stepJan1){
 function daysInclusive(a,b){ return Math.round((b-a)/86400000)+1; }
 function money(x){ return '$'+(x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
+// --- Annual computation ---
 function computeAnnual(params){
   const seat=params.seat, ac=params.ac, year=+params.year, province=params.province;
   const stepJan1 = stepOnJan1(params.stepInput, !!params.tieOn, year);
   const segs = yearSegments(year, stepJan1);
   const dailyHours = (+params.avgMonthlyHours)*12/365.2425;
   const audit=[]; let gross=0;
-  for (let i=0;i<segs.length;i++){
-    const seg=segs[i];
+  for (let seg of segs){
     const r=rateFor(seat, ac, seg.payYear, seg.step, !!params.xlrOn);
     const d=daysInclusive(seg.start, seg.end);
     const h=dailyHours*d;
@@ -179,18 +179,20 @@ function computeAnnual(params){
     gross += pay;
     audit.push({start:seg.start, end:seg.end, pay_table_year:seg.payYear, step:seg.step, hourly:r, days:d, hours:h, segment_gross:pay});
   }
+  // Pension accrual loop
   let pension=0;
   for (let t=Date.UTC(year,0,1); t<=Date.UTC(year,11,31); t+=86400000){
     const day=new Date(t);
     const pct = pensionRateOnDate(day);
     let py=year, st=stepJan1;
-    for (let i=0;i<segs.length;i++){ const s=segs[i]; if (day>=s.start && day<=s.end){ py=s.payYear; st=s.step; break; } }
+    for (let s of segs){ if (day>=s.start && day<=s.end){ py=s.payYear; st=s.step; break; } }
     const rate = rateFor(seat, ac, py, st, !!params.xlrOn);
     const dayPay = dailyHours*rate; pension += dayPay*pct;
   }
   const taxable = Math.max(0, gross - pension);
   const inQC = province==='QC';
-  let cpp_base, cpp2, cpp_total;
+  // CPP/QPP
+  let cpp_base, cpp2;
   if (inQC){
     const pensionable = Math.max(0, Math.min(QPP.ympe, gross)-QPP.ybe);
     cpp_base = pensionable * QPP.rate_base_total;
@@ -202,28 +204,31 @@ function computeAnnual(params){
     const cpp2_base = Math.max(0, Math.min(CPP.yampe, gross)-CPP.ympe);
     cpp2 = Math.min(cpp2_base * CPP.rate_cpp2, CPP.max_cpp2);
   }
-  cpp_total = cpp_base + cpp2;
+  const cpp_total = cpp_base + cpp2;
+  // EI
   const ei_rate = inQC ? EI.rate_qc : EI.rate;
   const ei_max = inQC ? EI.max_prem_qc : EI.max_prem;
-  let eiPrem = Math.min(Math.min(gross, EI.mie)*ei_rate, ei_max);
-
+  const eiPrem = Math.min(Math.min(gross, EI.mie)*ei_rate, ei_max);
+  // Taxes with credits on lowest rates
   const fed_tax = Math.max(0, taxFromBrackets(taxable, FED.brackets) - (0.145*federalBPA2025(taxable) + 0.15*(cpp_total+eiPrem)));
   const p = PROV[province];
   const prov_gross = taxFromBrackets(taxable, p.brackets);
   const prov_low = p.brackets[0][1];
   const prov_tax = Math.max(0, prov_gross - (prov_low*p.bpa + prov_low*(cpp_total+eiPrem)));
   const income_tax = fed_tax + prov_tax;
-
+  // ESOP
   const esop = Math.min((+params.esopPct/100)*gross, 30000);
-  const comb_top = (function(){ let tr=0; for (let i=0;i<p.brackets.length;i++){ if (taxable<=p.brackets[i][0]){ tr=p.brackets[i][1]; break; } } for (let i=0;i<FED.brackets.length;i++){ if (taxable<=FED.brackets[i][0]){ tr+=FED.brackets[i][1]; break; } } return tr; })();
+  // Approx combined top marginal for company match tax
+  const comb_top = (function(){ let tr=0, found=false; for (let i=0;i<p.brackets.length;i++){ if (taxable<=p.brackets[i][0] && !found){ tr+=p.brackets[i][1]; found=true; } } for (let i=0;i<FED.brackets.length;i++){ if (taxable<=FED.brackets[i][0]){ tr+=FED.brackets[i][1]; break; } } return tr; })();
   const esop_match_net = 0.30*esop*(1-comb_top);
-
+  // Totals
   const annual_health = HEALTH_MO*12;
   const net = gross - income_tax - cpp_total - eiPrem - annual_health - esop + esop_match_net;
   const monthly = {gross:gross/12, net:net/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:eiPrem/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
   return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei:eiPrem,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
 }
 
+// --- VO computation ---
 function computeVO(params){
   const seat=params.seat, ac=params.ac, year=+params.year, province=params.province;
   const step = params.tieOn ? stepOnJan1(params.stepInput, true, year) : clampStep(params.stepInput);
@@ -236,7 +241,7 @@ function computeVO(params){
   return {rate,hours,gross,net,fed_m,prov_m,step_used:step};
 }
 
-// UI wiring
+// --- UI helpers ---
 function setActiveTab(which){
   const btnA=document.getElementById('tabbtn-annual');
   const btnV=document.getElementById('tabbtn-vo');
@@ -277,10 +282,9 @@ function tieYearStepFromStep(isVO){
   yearEl.value = String(Math.max(2023, Math.min(2031, 2024 + s)));
 }
 
+// --- Renderers ---
 function renderAnnual(res, params){
   const out = document.getElementById('out');
-  const money = v => '$'+(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  // Simple stacked blocks per request
   const simpleHTML = `
     <div class="simple">
       <div class="block"><div class="label">Annual Gross</div><div class="value">${money(res.gross)}</div></div>
@@ -293,9 +297,7 @@ function renderAnnual(res, params){
       <div class="block"><div class="label">Pension</div><div class="value">${money(res.pension)}</div></div>
       <div class="block"><div class="label">ESOP Contributions</div><div class="value">${money(res.esop)}</div></div>
       <div class="block"><div class="label">ESOP match (after tax)</div><div class="value">${money(res.esop_match_after_tax)}</div></div>
-    </div>
-  `;
-  // Keep audit section exactly as before
+    </div>`;
   const auditRows = res.audit.map(seg=>{
     const fmt = d => d.toISOString().slice(0,10);
     return `<tr>
@@ -318,29 +320,19 @@ function renderAnnual(res, params){
 }
 function renderVO(res, params){
   const out = document.getElementById('ot-out');
-  const hdr = `${params.seat} · ${params.ac} · ${params.province} · ${params.year} · Step=${res.step_used} · Credit ${params.credit} · XLR ${params.xlrOn?'ON':'OFF'} · Tie ${params.tieOn?'ON':'OFF'}`;
-  const money = v => '$'+(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  const stat = (label, value, cls='') => `<div class="stat ${cls}"><h4>${label}</h4><div class="v">${value}</div></div>`;
   const statsHTML = `
-    <div class="stats">
-      ${stat('Hourly Rate', money(res.rate),'')}
-      ${stat('Hours (Credit×2)', res.hours.toFixed(2),'')}
-      ${stat('Gross', money(res.gross),'')}
-      ${stat('Net', money(res.net),'positive')}
-      ${stat('Marginal FED', (100*res.fed_m).toFixed(1)+'%','')}
-      ${stat('Marginal PROV', (100*res.prov_m).toFixed(1)+'%','')}
+    <div class="simple">
+      <div class="block"><div class="label">Hourly Rate</div><div class="value">${money(res.rate)}</div></div>
+      <div class="block"><div class="label">Hours (Credit×2)</div><div class="value">${res.hours.toFixed(2)}</div></div>
+      <div class="block"><div class="label">Gross</div><div class="value">${money(res.gross)}</div></div>
+      <div class="block"><div class="label">Net</div><div class="value">${money(res.net)}</div></div>
+      <div class="block"><div class="label">Marginal FED</div><div class="value">${(100*res.fed_m).toFixed(1)}%</div></div>
+      <div class="block"><div class="label">Marginal PROV</div><div class="value">${(100*res.prov_m).toFixed(1)}%</div></div>
     </div>`;
-  out.innerHTML = `<div class="hdr"><span class="pill">${hdr}</span></div>${statsHTML}`;
+  out.innerHTML = statsHTML;
 }
-  const header = params.seat+' · '+params.ac+' · '+params.province+' · Year '+params.year+' · Step='+res.step_used+' · Credit '+params.credit+' · XLR '+(params.xlrOn?'ON':'OFF')+' · Tie '+(params.tieOn?'ON':'OFF');
-  const detail = [
-    '  Hourly rate  $'+res.rate.toFixed(2),
-    '  Hours        '+res.hours.toFixed(2),
-    '  Gross        '+money(res.gross),
-    '  Net (marginal '+(100*res.fed_m).toFixed(1)+'% + '+(100*res.prov_m).toFixed(1)+'%)  '+money(res.net)
-  ].join('\\n');
-  document.getElementById('ot-out').textContent = [header,'',detail].join('\\n');
-}
+
+// --- Actions ---
 function calcAnnual(){
   try{
     const params = {
@@ -357,7 +349,8 @@ function calcAnnual(){
     const res = computeAnnual(params);
     renderAnnual(res, params);
   } catch(err){
-    document.getElementById('out').textContent = 'Error: '+err.message;
+    document.getElementById('out').innerHTML = '<div class="simple"><div class="block"><div class="label">Error</div><div class="value">'+String(err.message)+'</div></div></div>';
+    console.error(err);
   }
 }
 function calcVO(){
@@ -375,19 +368,16 @@ function calcVO(){
     const res = computeVO(params);
     renderVO(res, params);
   } catch(err){
-    document.getElementById('ot-out').textContent = 'Error: '+err.message;
+    document.getElementById('ot-out').innerHTML = '<div class="simple"><div class="block"><div class="label">Error</div><div class="value">'+String(err.message)+'</div></div></div>';
+    console.error(err);
   }
 }
 
-// DOM Ready wiring
+// --- Init ---
 function init(){
   // Tabs
-  const a=document.getElementById('tabbtn-annual');
-  const v=document.getElementById('tabbtn-vo');
-  if (a && v){
-    a.addEventListener('click', () => setActiveTab('annual'));
-    v.addEventListener('click', () => setActiveTab('vo'));
-  }
+  document.getElementById('tabbtn-annual')?.addEventListener('click', ()=>setActiveTab('annual'));
+  document.getElementById('tabbtn-vo')?.addEventListener('click', ()=>setActiveTab('vo'));
   // Dropdown behaviors
   document.getElementById('seat')?.addEventListener('change', ()=>onSeatChange(false));
   document.getElementById('ot-seat')?.addEventListener('change', ()=>onSeatChange(true));
@@ -396,12 +386,12 @@ function init(){
   document.getElementById('step')?.addEventListener('change', ()=>tieYearStepFromStep(false));
   document.getElementById('ot-step')?.addEventListener('change', ()=>tieYearStepFromStep(true));
   // ESOP slider label
-  const esopEl = document.getElementById('esop'); const esopPct = document.getElementById('esopPct');
+  const esopEl=document.getElementById('esop'); const esopPct=document.getElementById('esopPct');
   if (esopEl && esopPct){ esopEl.addEventListener('input', ()=>{ esopPct.textContent = esopEl.value+'%'; }); }
-  // Calculate buttons
+  // Buttons
   document.getElementById('calc')?.addEventListener('click', calcAnnual);
   document.getElementById('ot-calc')?.addEventListener('click', calcVO);
-  // Initial state
+  // Defaults
   onSeatChange(false);
   onSeatChange(true);
   tieYearStepFromYear(false);
