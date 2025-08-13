@@ -29,10 +29,23 @@
     input[type=range]{width:100%}
     .btn{background:var(--acc);color:white;border:none;border-radius:12px;padding:14px 16px;font-weight:700;cursor:pointer}
     .btn:active{opacity:.9}
-    .out{white-space:pre-wrap;font-family:var(--mono);font-size:13px;background:#0d0f14;border-radius:10px;padding:12px;margin-top:12px;line-height:1.35}
-    .tog{display:flex;gap:8px;align-items:center}
-    .badge{display:inline-block;background:#0f1218;border:1px solid #2a2f3b;border-radius:999px;padding:4px 8px;color:#9aa3b2;font-size:12px;margin-left:6px}
-    .hidden{display:none}
+    /* New output UI */
+    .out{margin-top:12px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+    .chip{background:#0f1218;border:1px solid #2a2f3b;border-radius:999px;padding:6px 10px;font-size:12px;color:#c9d2de}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    @media (min-width:860px){.kpis{grid-template-columns:repeat(4,1fr)}}
+    .kpi{background:#0d0f14;border:1px solid #262a35;border-radius:12px;padding:12px}
+    .kpi .label{color:var(--muted);font-size:12px;margin-bottom:6px}
+    .kpi .value{font-size:20px;font-weight:800}
+    .section{background:#0d0f14;border:1px solid #262a35;border-radius:12px;padding:12px;margin-top:10px}
+    .rows{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:14px}
+    .rows .label{color:var(--muted)}
+    table.audit{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+    table.audit th, table.audit td{border-bottom:1px solid #262a35;padding:6px 4px;text-align:left;white-space:nowrap}
+    table.audit th{color:#b6beca;font-weight:700}
+    details summary{cursor:pointer;color:#c9d2de;font-weight:600}
+    .muted{color:var(--muted)}
   </style>
 </head>
 <body>
@@ -89,21 +102,23 @@
           <label>Avg monthly credit hours</label>
           <input id="avgHrs" type="number" min="0" max="200" step="0.25" value="80">
         </div>
-        <div class="tog">
-          <input id="tie" type="checkbox" checked>
-          <label for="tie">Tie Year/Step</label>
-        </div>
-        <div class="tog">
-          <input id="xlr" type="checkbox">
-          <label for="xlr">XLR</label>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px">
         <div class="slider">
           <label style="min-width:54px">ESOP</label>
           <input id="esop" type="range" min="2" max="10" value="10" step="1">
-          <div class="badge"><span id="esopPct">10%</span></div>
+          <div class="chip" id="esopPct">10%</div>
         </div>
+        <div class="row" style="gap:10px">
+          <div class="slider tog">
+            <input id="tie" type="checkbox" checked>
+            <label for="tie">Tie Year/Step</label>
+          </div>
+          <div class="slider tog">
+            <input id="xlr" type="checkbox">
+            <label for="xlr">XLR</label>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
         <button id="calc" class="btn">Calculate</button>
       </div>
       <div class="out" id="out"></div>
@@ -154,11 +169,11 @@
           <label>Credit</label>
           <input id="ot-credit" type="number" min="0" step="0.1" value="10">
         </div>
-        <div class="tog">
+        <div class="slider tog">
           <input id="ot-tie" type="checkbox">
           <label for="ot-tie">Tie Year/Step</label>
         </div>
-        <div class="tog">
+        <div class="slider tog">
           <input id="ot-xlr" type="checkbox">
           <label for="ot-xlr">XLR</label>
         </div>

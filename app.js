@@ -236,7 +236,110 @@ function computeVO(params){
   return {rate,hours,gross,net,fed_m,prov_m,step_used:step};
 }
 
-// UI wiring
+// UI helpers
+function chip(text){ return `<span class="chip">${text}</span>`; }
+function kpi(label, value){ return `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div></div>`; }
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+
+// UI rendering
+function renderAnnual(res, params){
+  const m = res.monthly;
+  const chips = [
+    params.seat, params.ac, params.province, `Year ${params.year}`, `Step Jan 1 ${res.step_jan1}`,
+    `ESOP ${params.esopPct}%`, `${(+params.avgMonthlyHours).toFixed(2)} hrs/mo`,
+    `XLR ${params.xlrOn?'ON':'OFF'}`, `Tie ${params.tieOn?'ON':'OFF'}`
+  ].map(chip).join('');
+
+  const top = `
+    <div class="chips">${chips}</div>
+    <div class="kpis">
+      ${kpi('Annual Gross', money(res.gross))}
+      ${kpi('Annual Net', money(res.net))}
+      ${kpi('Monthly Gross', money(m.gross))}
+      ${kpi('Monthly Net', money(m.net))}
+    </div>
+  `;
+
+  const deductions = `
+    <div class="section">
+      <div class="rows">
+        <div class="label">Income Tax (fed+prov)</div><div>${money(res.tax)}</div>
+        <div class="label">CPP/QPP + CPP2</div><div>${money(res.cpp)}</div>
+        <div class="label">EI</div><div>${money(res.ei)}</div>
+        <div class="label">Health</div><div>${money(res.health)}</div>
+        <div class="label">Pension (pre-tax)</div><div>${money(res.pension)}</div>
+      </div>
+    </div>
+  `;
+
+  const esop = `
+    <div class="section">
+      <div class="rows">
+        <div class="label">ESOP (employee)</div><div>${money(res.esop)}</div>
+        <div class="label">ESOP match (after tax)</div><div>${money(res.esop_match_after_tax)}</div>
+      </div>
+      <div class="muted" style="margin-top:6px">ESOP capped at $30,000; company match is taxed and shown after tax.</div>
+    </div>
+  `;
+
+  const auditRows = res.audit.map(seg => `
+    <tr>
+      <td>${fmtDate(seg.start)}</td>
+      <td>${fmtDate(seg.end)}</td>
+      <td>${seg.pay_table_year}</td>
+      <td>${String(seg.step).padStart(2,' ')}</td>
+      <td>$${seg.hourly.toFixed(2)}/hr</td>
+      <td>${seg.hours.toFixed(2)} hrs</td>
+      <td>${money(seg.segment_gross)}</td>
+    </tr>
+  `).join('');
+
+  const audit = `
+    <div class="section">
+      <details>
+        <summary>Audit — date ranges & rates</summary>
+        <table class="audit">
+          <thead><tr>
+            <th>Start</th><th>End</th><th>Pay-Table</th><th>Step</th><th>Rate</th><th>Hours</th><th>Gross</th>
+          </tr></thead>
+          <tbody>${auditRows}</tbody>
+        </table>
+      </details>
+    </div>
+  `;
+
+  document.getElementById('out').innerHTML = top + deductions + esop + audit;
+}
+
+function renderVO(res, params){
+  const chips = [
+    params.seat, params.ac, params.province, `Year ${params.year}`, `Step ${res.step_used}`,
+    `Credit ${params.credit}`, `XLR ${params.xlrOn?'ON':'OFF'}`, `Tie ${params.tieOn?'ON':'OFF'}`
+  ].map(chip).join('');
+
+  const kpis = `
+    <div class="kpis">
+      ${kpi('Hourly Rate', '$'+res.rate.toFixed(2))}
+      ${kpi('Hours Paid', res.hours.toFixed(2))}
+      ${kpi('Gross (one-time)', money(res.gross))}
+      ${kpi('Net (marginal)', money(res.net))}
+    </div>
+  `;
+
+  const notes = `
+    <div class="section">
+      <div class="rows">
+        <div class="label">Marginal federal</div><div>${(100*res.fed_m).toFixed(1)}%</div>
+        <div class="label">Marginal provincial</div><div>${(100*res.prov_m).toFixed(1)}%</div>
+      </div>
+      <div class="muted" style="margin-top:6px">VO calculation uses marginal tax rates for a one-time payment.</div>
+    </div>
+  `;
+
+  document.getElementById('ot-out').innerHTML = `<div class="chips">${chips}</div>` + kpis + notes;
+}
+
+// Tab & events
 function setActiveTab(which){
   const btnA=document.getElementById('tabbtn-annual');
   const btnV=document.getElementById('tabbtn-vo');
@@ -276,46 +379,7 @@ function tieYearStepFromStep(isVO){
   const s = Math.max(1, Math.min(12, +stepEl.value));
   yearEl.value = String(Math.max(2023, Math.min(2031, 2024 + s)));
 }
-function renderAnnual(res, params){
-  const m = res.monthly;
-  const header = params.seat+' · '+params.ac+' · '+params.province+' · Year '+params.year+' · Step Jan 1='+res.step_jan1+' · ESOP '+params.esopPct+'% · '+(+params.avgMonthlyHours).toFixed(2)+' hrs/mo · XLR '+(params.xlrOn?'ON':'OFF')+' · Tie '+(params.tieOn?'ON':'OFF');
-  const annual = [
-    'ANNUAL',
-    '  Gross              '+money(res.gross),
-    '  Pension (pre-tax) -'+money(res.pension),
-    '  Tax (fed+prov)    -'+money(res.tax),
-    '  CPP/QPP+CPP2      -'+money(res.cpp),
-    '  EI                -'+money(res.ei),
-    '  Health            -'+money(res.health),
-    '  ESOP ('+params.esopPct+'%)     -'+money(res.esop),
-    '  + ESOP match (net)+'+money(res.esop_match_after_tax),
-    '  NET                '+money(res.net)
-  ].join('\\n');
-  const monthly = [
-    'MONTHLY',
-    '  Gross '+money(m.gross),
-    '  Net   '+money(m.net),
-    '  Tax   '+money(m.income_tax)+'    CPP/QPP '+money(m.cpp)+'    EI '+money(m.ei),
-    '  Health '+money(m.health)+'    Pension '+money(m.pension),
-    '  ESOP '+money(m.esop)+'    ESOP match (net) '+money(m.esop_match_net)
-  ].join('\\n');
-  const auditLines = res.audit.map(seg => {
-    const fmt = d => d.toISOString().slice(0,10);
-    return '  '+fmt(seg.start)+' → '+fmt(seg.end)+' | tbl '+seg.pay_table_year+' | step '+String(seg.step).padStart(2,' ')+' | $'+seg.hourly.toFixed(2)+'/hr | '+seg.hours.toFixed(2)+' hrs | '+money(seg.segment_gross);
-  }).join('\\n');
-  const audit = 'AUDIT (date ranges)\\n'+auditLines;
-  document.getElementById('out').textContent = [header,'',annual,'',monthly,'',audit].join('\\n');
-}
-function renderVO(res, params){
-  const header = params.seat+' · '+params.ac+' · '+params.province+' · Year '+params.year+' · Step='+res.step_used+' · Credit '+params.credit+' · XLR '+(params.xlrOn?'ON':'OFF')+' · Tie '+(params.tieOn?'ON':'OFF');
-  const detail = [
-    '  Hourly rate  $'+res.rate.toFixed(2),
-    '  Hours        '+res.hours.toFixed(2),
-    '  Gross        '+money(res.gross),
-    '  Net (marginal '+(100*res.fed_m).toFixed(1)+'% + '+(100*res.prov_m).toFixed(1)+'%)  '+money(res.net)
-  ].join('\\n');
-  document.getElementById('ot-out').textContent = [header,'',detail].join('\\n');
-}
+
 function calcAnnual(){
   try{
     const params = {
@@ -332,7 +396,7 @@ function calcAnnual(){
     const res = computeAnnual(params);
     renderAnnual(res, params);
   } catch(err){
-    document.getElementById('out').textContent = 'Error: '+err.message;
+    document.getElementById('out').innerHTML = `<div class="section" style="color:#ffb4b4">Error: ${err.message}</div>`;
   }
 }
 function calcVO(){
@@ -350,7 +414,7 @@ function calcVO(){
     const res = computeVO(params);
     renderVO(res, params);
   } catch(err){
-    document.getElementById('ot-out').textContent = 'Error: '+err.message;
+    document.getElementById('ot-out').innerHTML = `<div class="section" style="color:#ffb4b4">Error: ${err.message}</div>`;
   }
 }
 
