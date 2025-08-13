@@ -229,12 +229,14 @@ function computeAnnual(params){
 }
 
 // --- VO computation ---
+
 function computeVO(params){
   const seat=params.seat, ac=params.ac, year=+params.year, province=params.province;
   const step = params.tieOn ? stepOnJan1(params.stepInput, true, year) : clampStep(params.stepInput);
   const rate = rateFor(seat, ac, year, step, !!params.xlrOn);
-  const hours = (+params.credit)*2;
-  const gross = hours*rate;
+  const credits = Math.max(0, (+params.creditH) + Math.max(0, Math.min(59, +params.creditM))/60);
+  const hours = credits * 2;
+  const gross = hours * rate;
   const fed_m = marginalRate(gross, FED.brackets);
   const prov_m = marginalRate(gross, PROV[province].brackets);
   const net = gross*(1-(fed_m+prov_m));
@@ -363,7 +365,8 @@ function calcVO(){
       tieOn: document.getElementById('ot-tie').checked,
       xlrOn: document.getElementById('ot-xlr').checked,
       province: document.getElementById('ot-prov').value,
-      credit: +document.getElementById('ot-credit').value
+      creditH: +document.getElementById('ot-cred-h').value,
+      creditM: +document.getElementById('ot-cred-m').value
     };
     const res = computeVO(params);
     renderVO(res, params);
