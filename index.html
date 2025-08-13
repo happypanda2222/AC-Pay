@@ -31,6 +31,8 @@
     .out{white-space:pre-wrap;font-family:var(--mono);font-size:13px;background:#0d0f14;border-radius:10px;padding:12px;margin-top:12px;line-height:1.35}
     .tog{display:flex;gap:8px;align-items:center}
     .badge{display:inline-block;background:#0f1218;border:1px solid #2a2f3b;border-radius:999px;padding:4px 8px;color:var(--muted);font-size:12px;margin-left:6px}
+
+    
     .hidden{display:none}
   </style>
 </head>
@@ -62,6 +64,7 @@
           </select>
         </div>
         <div>
+     
           <label>Year</label>
           <select id="year">
             <option>2023</option><option>2024</option><option selected>2025</option><option>2026</option>
@@ -169,7 +172,7 @@
     </div>
 
   </div>
-  <script type="module" src="app.js"></script>
+  <scr src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
