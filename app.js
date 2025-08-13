@@ -1,18 +1,17 @@
-// AC Pay Calculator — iPhone (robust dropdown init)
-// Defaults: FO, 320, 2025, MB, 80 hrs
+// AC Pay Calculator — iPhone v1.5
 const DOH = new Date('2024-08-07T00:00:00Z');
 const PROGRESSION = {m:11, d:10};  // Nov 10
 const SWITCH = {m:9, d:30};        // Sep 30
 const AIRCRAFT_ORDER = ["777","787","330","767","320","737","220"];
 
-// Pay tables 2023–2026 (contract) + projections 2027–2031
+// Pay tables (2023–2026) and projections (2027–2031)
 const PAY_TABLES = {
   2023: { CA: { "777":{1:365.60,2:369.28,3:372.99,4:376.75,5:380.54,6:384.38,7:388.26,8:392.18,9:396.14,10:400.14,11:404.18,12:408.27},
                 "787":{1:336.02,2:339.40,3:342.81,4:346.27,5:349.76,6:353.28,7:356.85,8:360.45,9:364.09,10:367.77,11:371.48,12:375.23},
                 "330":{1:329.57,2:332.88,3:336.23,4:339.62,5:343.04,6:346.50,7:349.99,8:353.53,9:357.10,10:360.70,11:364.35,12:368.03},
                 "767":{1:308.82,2:311.93,3:315.07,4:318.24,5:321.45,6:324.69,7:327.96,8:331.27,9:334.62,10:338.00,11:341.41,12:344.86},
-                "320":{1:268.55,2:271.25,3:273.98,4:276.74,5:279.53,6:282.35,7:168.27,8:288.07,9:290.98,10:293.92,11:296.89,12:299.89},
-                "737":{1:268.55,2:271.25,3:273.98,4:276.74,5:279.53,6:282.35,7:285.20,8:174.29,9:180.41,10:186.64,11:192.98,12:199.43},
+                "320":{1:268.55,2:271.25,3:273.98,4:276.74,5:279.53,6:282.35,7:285.20,8:288.07,9:290.98,10:293.92,11:296.89,12:299.89},
+                "737":{1:268.55,2:271.25,3:273.98,4:276.74,5:279.53,6:282.35,7:285.20,8:288.07,9:290.98,10:293.92,11:296.89,12:299.89},
                 "220":{1:263.35,2:265.99,3:268.67,4:271.37,5:274.11,6:276.87,7:279.67,8:282.49,9:285.34,10:288.22,11:291.14,12:294.08} },
           FO: { "777":{1:84.12,2:91.16,3:138.01,4:148.82,5:207.40,6:215.25,7:223.25,8:231.39,9:239.66,10:248.09,11:256.66,12:265.37},
                 "787":{1:84.12,2:91.16,3:126.84,4:136.78,5:190.62,6:197.84,7:205.19,8:212.67,9:220.27,10:228.02,11:235.89,12:243.90},
@@ -34,7 +33,34 @@ const PAY_TABLES = {
                 "220":{1:273.88,2:276.63,3:279.41,4:282.23,5:285.07,6:287.95,7:290.85,8:293.79,9:296.76,10:299.75,11:302.78,12:305.84} }
 };
 
-// Projections from 2026 base
+// Append 2025 and 2026
+PAY_TABLES[2025] = { CA: { "777":{1:395.43,2:399.40,3:403.42,4:407.48,5:411.59,6:415.74,7:419.94,8:424.18,9:428.46,10:432.79,11:437.16,12:441.57},
+                           "787":{1:363.44,2:367.09,3:370.78,4:374.52,5:378.29,6:382.10,7:385.96,8:389.86,9:393.79,10:397.77,11:401.79,12:405.85},
+                           "330":{1:356.46,2:360.04,3:363.66,4:367.32,5:371.03,6:374.77,7:378.55,8:382.37,9:386.23,10:390.13,11:394.07,12:398.05},
+                           "767":{1:334.02,2:337.37,3:340.77,4:344.20,5:347.67,6:351.18,7:354.72,8:358.30,9:361.92,10:365.57,11:369.27,12:373.00},
+                           "320":{1:290.46,2:293.38,3:296.33,4:299.32,5:302.33,6:305.38,7:308.46,8:311.58,9:314.72,10:317.90,11:321.11,12:324.36},
+                           "737":{1:290.46,2:293.38,3:296.33,4:299.32,5:302.33,6:305.38,7:308.46,8:311.58,9:314.72,10:317.90,11:321.11,12:324.36},
+                           "220":{1:284.83,2:287.69,3:290.59,4:293.51,5:296.47,6:299.46,7:302.48,8:305.54,9:308.62,10:311.74,11:314.89,12:318.07} },
+                    FO: { "777":{1:90.98,2:98.60,3:149.27,4:160.96,5:224.32,6:232.82,7:241.46,8:250.26,9:259.22,10:268.33,11:277.60,12:287.02},
+                           "787":{1:90.98,2:98.60,3:137.19,4:147.93,5:206.17,6:213.98,7:221.93,8:230.02,9:238.24,10:246.62,11:255.14,12:263.80},
+                           "330":{1:90.98,2:98.60,3:134.55,4:145.09,5:202.21,6:209.87,7:217.67,8:225.60,9:233.67,10:241.88,11:250.24,12:258.73},
+                           "767":{1:90.98,2:98.60,3:126.08,4:135.96,5:189.48,6:196.66,7:203.96,8:211.40,9:218.96,10:226.66,11:234.48,12:242.45},
+                           "320":{1:90.98,2:98.60,3:124.46,4:133.20,5:169.31,6:175.59,7:181.99,8:188.50,9:195.13,10:201.87,11:208.72,12:215.70},
+                           "737":{1:90.98,2:98.60,3:124.46,4:133.20,5:169.31,6:175.59,7:181.99,8:188.50,9:195.13,10:201.87,11:208.72,12:215.70},
+                           "220":{1:90.98,2:98.60,3:122.05,4:130.61,5:166.02,6:172.19,7:178.46,8:184.85,9:191.34,10:197.95,11:204.68,12:211.51} },
+                    RP: { "777":{1:90.98,2:98.60,3:114.98,4:124.28,5:152.29,6:157.98,7:163.78,8:169.67,9:175.67,10:181.77,11:185.79,12:189.88},
+                           "787":{1:90.98,2:98.60,3:105.67,4:114.23,5:139.97,6:145.20,7:150.52,8:155.94,9:161.46,10:167.06,11:170.76,12:174.51},
+                           "330":{1:90.98,2:98.60,3:103.64,4:112.03,5:137.28,6:142.41,7:147.63,8:152.95,9:158.35,10:163.86,11:167.48,12:171.16} }}
+
+PAY_TABLES[2026] = { CA: { "777":{1:411.26,2:415.39,3:419.57,4:423.80,5:428.07,6:432.39,7:436.75,8:441.16,9:445.61,10:450.11,11:454.66,12:459.25},
+                           "787":{1:377.98,2:381.78,3:385.62,4:389.51,5:393.43,6:397.40,7:401.41,8:405.46,9:409.56,10:413.69,11:417.87,12:422.09},
+                           "330":{1:370.72,2:374.45,3:378.22,4:382.03,5:385.88,6:389.77,7:393.70,8:397.68,9:401.69,10:405.75,11:409.85,12:413.99},
+                           "767":{1:347.39,2:350.88,3:354.41,4:357.98,5:361.58,6:365.23,7:368.92,8:372.64,9:376.40,10:380.21,11:384.05,12:387.92},
+                           "320":{1:302.08,2:305.12,3:308.19,4:311.29,5:314.43,6:317.60,7:320.80,8:324.04,9:327.32,10:330.62,11:333.96,12:337.33},
+                           "737":{1:302.08,2:305.12,3:308.19,4:311.29,5:314.43,6:317.60,7:320.80,8:324.04,9:327.32,10:330.62,11:333.96,12:337.33},
+                           "220":{1:296.23,2:299.20,3:302.21,4:305.26,5:308.33,6:311.44,7:314.58,8:317.76,9:320.97,10:324.21,11:327.49,12:330.79} }}
+
+// Projections 2027–2031 from 2026 base
 const RAISES = {2027: 1.08, 2028: 1.08*1.04, 2029: 1.08*1.04*1.04, 2030: 1.08*1.04*1.04*1.04};
 [2027,2028,2029,2030,2031].forEach(y=>{
   const factor = (y===2031) ? RAISES[2030] : RAISES[y];
@@ -75,34 +101,18 @@ const QPP = {ympe:71300,yampe:81200,ybe:3500, rate_base_total:.064, rate_qpp2:.0
 const EI = {mie:65700, rate:.0164, rate_qc:.0131, max_prem:1077.48, max_prem_qc:860.67};
 const HEALTH_MO = 58.80;
 
-// Helpers
 const clampStep = s => Math.max(1, Math.min(12, s));
 function federalBPA2025(income){
-  const b=FED;
-  let addl=0;
+  const b=FED; let addl=0;
   if (income<=b.bpa_addl_start) addl=b.bpa_additional;
-  else if (income>=b.bpa_addl_end) addl=0;
-  else {
-    const frac=(b.bpa_addl_end-income)/(b.bpa_addl_end-b.bpa_addl_start);
-    addl=b.bpa_additional*Math.max(0,Math.min(1,frac));
-  }
+  else if (income<b.bpa_addl_end){ const frac=(b.bpa_addl_end-income)/(b.bpa_addl_end-b.bpa_addl_start); addl=b.bpa_additional*Math.max(0,Math.min(1,frac)); }
   return b.bpa_base+addl;
 }
 function taxFromBrackets(taxable, brackets){
-  let tax=0,last=0;
-  for (const [cap,rate] of brackets){
-    const slice=Math.min(taxable,cap)-last;
-    if (slice>0){ tax+=slice*rate; last=cap; }
-    if (taxable<=cap) break;
-  }
-  return Math.max(0,tax);
+  let tax=0,last=0; for (const [cap,rate] of brackets){ const slice=Math.min(taxable,cap)-last; if (slice>0){ tax+=slice*rate; last=cap; } if (taxable<=cap) break; } return Math.max(0,tax);
 }
-function pensionRateOnDate(d){
-  const years = (d-DOH)/(365.2425*24*3600*1000);
-  if (years<2) return 0.06;
-  if (years<5) return 0.065;
-  return 0.07;
-}
+function marginalRate(amount, brackets){ for (const [cap,rate] of brackets){ if (amount<=cap) return rate; } return brackets[brackets.length-1][1]; }
+function pensionRateOnDate(d){ const years=(d-DOH)/(365.2425*24*3600*1000); if (years<2) return 0.06; if (years<5) return 0.065; return 0.07; }
 function stepOnJan1(selectedStep, tieOn, year){ return tieOn ? clampStep((year-2025)+1) : clampStep(selectedStep); }
 function rateFor(seat, ac, year, step, xlr){
   const table = PAY_TABLES[year][seat];
@@ -139,7 +149,7 @@ function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,provi
     gross += pay;
     audit.push({start:seg.start, end:seg.end, pay_table_year:seg.payYear, step:seg.step, hourly:r, days:d, hours:h, segment_gross:pay});
   }
-  // Pension (pre-tax), iterate days
+  // Pension
   let pension=0;
   for (let t=Date.UTC(year,0,1); t<=Date.UTC(year,11,31); t+=86400000){
     const day=new Date(t);
@@ -167,7 +177,7 @@ function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,provi
   cpp_total = cpp_base + cpp2;
   const ei_rate = inQC ? EI.rate_qc : EI.rate;
   const ei_max = inQC ? EI.max_prem_qc : EI.max_prem;
-  ei = Math.min(gross, EI.mie)*ei_rate; ei = Math.min(ei, ei_max);
+  let ei = Math.min(gross, EI.mie)*ei_rate; ei = Math.min(ei, ei_max);
   // Taxes + credits
   const fed_tax = Math.max(0, taxFromBrackets(taxable, FED.brackets) - (0.145*federalBPA2025(taxable) + 0.15*(cpp_total+ei)));
   const p = PROV[province];
@@ -185,7 +195,19 @@ function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,provi
   return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
 }
 
-// ---------- UI Wire-up (defensive) ----------
+// VO
+function computeVO({seat,ac,year,stepInput,tieOn,xlrOn,province,credit}){
+  const step = tieOn ? stepOnJan1(stepInput,true,year) : clampStep(stepInput);
+  const rate = rateFor(seat, ac, year, step, xlrOn);
+  const hours = credit*2;
+  const gross = hours * rate;
+  const fed_m = marginalRate(gross, FED.brackets);
+  const prov_m = marginalRate(gross, PROV[province].brackets);
+  const net = gross * (1 - (fed_m + prov_m));
+  return {rate, hours, gross, net, fed_m, prov_m, step_used:step};
+}
+
+// ---------- UI ----------
 const seatEl = document.getElementById('seat');
 const acEl   = document.getElementById('ac');
 const yearEl = document.getElementById('year');
@@ -199,40 +221,71 @@ const esopPctEl = document.getElementById('esopPct');
 const outEl  = document.getElementById('out');
 const calcBtn = document.getElementById('calc');
 
-function refreshAircraft(){
-  const seat = seatEl.value;
+// VO elements
+const otSeatEl = document.getElementById('ot-seat');
+const otAcEl   = document.getElementById('ot-ac');
+const otYearEl = document.getElementById('ot-year');
+const otStepEl = document.getElementById('ot-step');
+const otProvEl = document.getElementById('ot-prov');
+const otTieEl  = document.getElementById('ot-tie');
+const otXlrEl  = document.getElementById('ot-xlr');
+const otCreditEl = document.getElementById('ot-credit');
+const otOutEl = document.getElementById('ot-out');
+const otCalcBtn = document.getElementById('ot-calc');
+
+// Tabs
+const btnAnnual = document.querySelector('.tabbtn[data-tab="annual"]');
+const btnOT = document.querySelector('.tabbtn[data-tab="vo"]');
+const tabAnnual = document.getElementById('tab-annual');
+const tabOT = document.getElementById('tab-vo');
+
+function setActiveTab(which){
+  if (which==='annual'){
+    btnAnnual.classList.add('active'); btnOT.classList.remove('active');
+    tabAnnual.classList.remove('hidden'); tabOT.classList.add('hidden');
+  } else {
+    btnOT.classList.add('active'); btnAnnual.classList.remove('active');
+    tabOT.classList.remove('hidden'); tabAnnual.classList.add('hidden');
+  }
+}
+btnAnnual.addEventListener('click', ()=>setActiveTab('annual'));
+btnOT.addEventListener('click', ()=>setActiveTab('vo'));
+
+function refreshAircraft(selectSeatEl, selectAcEl){
+  const seat = selectSeatEl.value;
   const allowed = (seat==='RP') ? ["777","787","330"] : AIRCRAFT_ORDER;
-  acEl.innerHTML = '';
+  selectAcEl.innerHTML = '';
   for (const a of allowed){
-    const opt=document.createElement('option'); opt.textContent=a; acEl.appendChild(opt);
+    const opt=document.createElement('option'); opt.textContent=a; selectAcEl.appendChild(opt);
   }
-  if (allowed.includes('320')) acEl.value='320';
+  if (allowed.includes('320')) selectAcEl.value='320';
 }
 
-function ensureAircraftInitial(){
-  if (acEl.options.length===0){
+function ensureInitial(selectAcEl, selectProvEl){
+  if (selectAcEl.options.length===0){
     for (const a of AIRCRAFT_ORDER){
-      const opt=document.createElement('option'); opt.textContent=a; acEl.appendChild(opt);
+      const opt=document.createElement('option'); opt.textContent=a; selectAcEl.appendChild(opt);
     }
-    acEl.value='320';
+    selectAcEl.value='320';
   }
-}
-
-function ensureProvinces(){
-  if (provEl.options.length===0){
+  if (selectProvEl.options.length===0){
     ['AB','BC','MB','NB','NL','NS','NT','NU','ON','PE','QC','SK','YT'].forEach(k=>{
-      const opt=document.createElement('option'); opt.value=k; opt.textContent=k; provEl.appendChild(opt);
+      const opt=document.createElement('option'); opt.value=k; opt.textContent=k; selectProvEl.appendChild(opt);
     });
-    provEl.value='MB';
+    selectProvEl.value='MB';
   }
 }
 
 function tieYearStepFromYear(){ if (!tieEl.checked) return; stepEl.value = String(Math.max(1, Math.min(12, (+yearEl.value-2025)+1))); }
 function tieYearStepFromStep(){ if (!tieEl.checked) return; yearEl.value = String(Math.max(2023, Math.min(2031, 2024 + Math.max(1, Math.min(12, +stepEl.value))))); }
 
-function money(x){ return '$' + x.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function otTieFromYear(){ if (!otTieEl.checked) return; otStepEl.value = String(Math.max(1, Math.min(12, (+otYearEl.value-2025)+1))); }
+function otTieFromStep(){ if (!otTieEl.checked) return; otYearEl.value = String(Math.max(2023, Math.min(2031, 2024 + Math.max(1, Math.min(12, +otStepEl.value))))); }
 
-function renderOutput(res, params){
+function money(x){ return '$' + x.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function pct(x){ return (100*x).toFixed(1) + '%'; }
+
+function renderAnnual(res, params){
   const {seat, ac, year, province, esopPct, avgMonthlyHours, xlrOn, tieOn} = params;
   const m = res.monthly;
   const header = `${seat} · ${ac} · ${province} · Year ${year} · Step Jan 1=${res.step_jan1} · ESOP ${esopPct}% · ${avgMonthlyHours.toFixed(2)} hrs/mo · XLR ${xlrOn?'ON':'OFF'} · Tie ${tieOn?'ON':'OFF'}`;
@@ -264,17 +317,27 @@ function renderOutput(res, params){
   outEl.textContent = [header, '', annual, '', monthly, '', audit].join('\n');
 }
 
-function init(){
-  ensureAircraftInitial();
-  ensureProvinces();
-  tieYearStepFromYear();
-  esopPctEl.textContent = esopEl.value + '%';
+function renderVO(res, params){
+  const {seat, ac, year, province, credit, xlrOn, tieOn} = params;
+  const header = `${seat} · ${ac} · ${province} · Year ${year} · Step=${res.step_used} · Credit ${credit} · XLR ${xlrOn?'ON':'OFF'} · Tie ${tieOn?'ON':'OFF'}`;
+  const detail = [
+    `  Hourly rate  $${res.rate.toFixed(2)}`,
+    `  Hours        ${(res.hours).toFixed(2)}`,
+    `  Gross        ${money(res.gross)}`,
+    `  Net (marginal ${pct(res.fed_m)} + ${pct(res.prov_m)})  ${money(res.net)}`
+  ].join('\n');
+  otOutEl.textContent = [header, '', detail].join('\n');
 }
 
-seatEl.addEventListener('change', refreshAircraft);
+// Wire-up
+seatEl.addEventListener('change', ()=>refreshAircraft(seatEl, acEl));
 yearEl.addEventListener('change', tieYearStepFromYear);
 stepEl.addEventListener('change', tieYearStepFromStep);
 esopEl.addEventListener('input', ()=>{ esopPctEl.textContent = esopEl.value + '%'; });
+
+otSeatEl.addEventListener('change', ()=>refreshAircraft(otSeatEl, otAcEl));
+otYearEl.addEventListener('change', otTieFromYear);
+otStepEl.addEventListener('change', otTieFromStep);
 
 calcBtn.addEventListener('click', ()=>{
   try{
@@ -290,12 +353,51 @@ calcBtn.addEventListener('click', ()=>{
       esopPct: +esopEl.value
     };
     const res = computeAnnual(params);
-    renderOutput(res, params);
+    renderAnnual(res, params);
   }catch(err){
     outEl.textContent = 'Error: ' + err.message;
   }
 });
 
+otCalcBtn.addEventListener('click', ()=>{
+  try{
+    const params = {
+      seat: otSeatEl.value,
+      ac: otAcEl.value,
+      year: +otYearEl.value,
+      stepInput: +otStepEl.value,
+      tieOn: !!otTieEl.checked,
+      xlrOn: !!otXlrEl.checked,
+      province: otProvEl.value,
+      credit: +otCreditEl.value
+    };
+    const res = computeVO(params);
+    renderVO(res, params);
+  }catch(err){
+    otOutEl.textContent = 'Error: ' + err.message;
+  }
+});
+
+function init(){
+  function ensureInitial(selectAcEl, selectProvEl){
+    if (selectAcEl.options.length===0){
+      for (const a of AIRCRAFT_ORDER){
+        const opt=document.createElement('option'); opt.textContent=a; selectAcEl.appendChild(opt);
+      }
+      selectAcEl.value='320';
+    }
+    if (selectProvEl.options.length===0){
+      ['AB','BC','MB','NB','NL','NS','NT','NU','ON','PE','QC','SK','YT'].forEach(k=>{
+        const opt=document.createElement('option'); opt.value=k; opt.textContent=k; selectProvEl.appendChild(opt);
+      });
+      selectProvEl.value='MB';
+    }
+  }
+  ensureInitial(acEl, provEl);
+  ensureInitial(otAcEl, otProvEl);
+  // default ties
+  (function(){ const evt=new Event('change'); yearEl.dispatchEvent(evt);} )();
+}
 if (document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', init);
 } else {

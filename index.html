@@ -15,6 +15,9 @@
     html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
     .wrap{max-width:980px;margin:0 auto;padding:12px 14px 40px 14px}
     h1{font-size:22px;margin:8px 0 14px 0}
+    .tabs{display:flex;gap:8px;margin:0 0 10px 0}
+    .tabbtn{flex:1;background:#0f1218;border:1px solid #2a2f3b;color:#c9d2de;padding:10px;border-radius:10px;font-weight:600}
+    .tabbtn.active{background:var(--acc);color:white;border-color:transparent}
     .card{background:var(--card);border-radius:14px;padding:12px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);}
     label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
     select,input[type=number]{width:100%;padding:10px;border-radius:10px;border:1px solid #2a2f3b;background:#0f1218;color:var(--txt)}
@@ -28,12 +31,20 @@
     .out{white-space:pre-wrap;font-family:var(--mono);font-size:13px;background:#0d0f14;border-radius:10px;padding:12px;margin-top:12px;line-height:1.35}
     .tog{display:flex;gap:8px;align-items:center}
     .badge{display:inline-block;background:#0f1218;border:1px solid #2a2f3b;border-radius:999px;padding:4px 8px;color:var(--muted);font-size:12px;margin-left:6px}
+    .hidden{display:none}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>AC Pay Calculator — iPhone</h1>
-    <div class="card">
+
+    <div class="tabs">
+      <button class="tabbtn active" data-tab="annual">Annual</button>
+      <button class="tabbtn" data-tab="vo">VO</button>
+    </div>
+
+    <!-- Annual Tab -->
+    <div class="card" id="tab-annual">
       <div class="row-4">
         <div>
           <label>Seat</label>
@@ -96,6 +107,67 @@
       </div>
       <div class="out" id="out"></div>
     </div>
+
+    <!-- VO Tab -->
+    <div class="card hidden" id="tab-vo">
+      <div class="row-4">
+        <div>
+          <label>Seat</label>
+          <select id="ot-seat">
+            <option selected>FO</option>
+            <option>CA</option>
+            <option>RP</option>
+          </select>
+        </div>
+        <div>
+          <label>Aircraft</label>
+          <select id="ot-ac">
+            <option>777</option><option>787</option><option>330</option><option>767</option>
+            <option selected>320</option><option>737</option><option>220</option>
+          </select>
+        </div>
+        <div>
+          <label>Year</label>
+          <select id="ot-year">
+            <option>2023</option><option>2024</option><option selected>2025</option><option>2026</option>
+            <option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option>
+          </select>
+        </div>
+        <div>
+          <label>Step</label>
+          <select id="ot-step">
+            <option selected>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+            <option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-4" style="margin-top:10px">
+        <div>
+          <label>Province/Territory</label>
+          <select id="ot-prov">
+            <option>AB</option><option>BC</option><option selected>MB</option><option>NB</option><option>NL</option><option>NS</option>
+            <option>NT</option><option>NU</option><option>ON</option><option>PE</option><option>QC</option><option>SK</option><option>YT</option>
+          </select>
+        </div>
+        <div>
+          <label>Credit</label>
+          <input id="ot-credit" type="number" min="0" step="0.1" value="10">
+        </div>
+        <div class="tog">
+          <input id="ot-tie" type="checkbox">
+          <label for="ot-tie">Tie Year/Step</label>
+        </div>
+        <div class="tog">
+          <input id="ot-xlr" type="checkbox">
+          <label for="ot-xlr">XLR</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="ot-calc" class="btn">Calculate VO</button>
+      </div>
+      <div class="out" id="ot-out"></div>
+    </div>
+
   </div>
   <script type="module" src="app.js"></script>
   <script>
