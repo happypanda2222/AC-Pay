@@ -380,31 +380,31 @@ function calcVO(){
 }
 
 // DOM Ready wiring
-document.addEventListener('DOMContentLoaded', () => {
+function init(){
   // Tabs
-  document.getElementById('tabbtn-annual').addEventListener('click', () => setActiveTab('annual'));
-  document.getElementById('tabbtn-vo').addEventListener('click', () => setActiveTab('vo'));
-
+  const a=document.getElementById('tabbtn-annual');
+  const v=document.getElementById('tabbtn-vo');
+  if (a && v){
+    a.addEventListener('click', () => setActiveTab('annual'));
+    v.addEventListener('click', () => setActiveTab('vo'));
+  }
   // Dropdown behaviors
-  document.getElementById('seat').addEventListener('change', ()=>onSeatChange(false));
-  document.getElementById('ot-seat').addEventListener('change', ()=>onSeatChange(true));
-  document.getElementById('year').addEventListener('change', ()=>tieYearStepFromYear(false));
-  document.getElementById('ot-year').addEventListener('change', ()=>tieYearStepFromYear(true));
-  document.getElementById('step').addEventListener('change', ()=>tieYearStepFromStep(false));
-  document.getElementById('ot-step').addEventListener('change', ()=>tieYearStepFromStep(true));
-
+  document.getElementById('seat')?.addEventListener('change', ()=>onSeatChange(false));
+  document.getElementById('ot-seat')?.addEventListener('change', ()=>onSeatChange(true));
+  document.getElementById('year')?.addEventListener('change', ()=>tieYearStepFromYear(false));
+  document.getElementById('ot-year')?.addEventListener('change', ()=>tieYearStepFromYear(true));
+  document.getElementById('step')?.addEventListener('change', ()=>tieYearStepFromStep(false));
+  document.getElementById('ot-step')?.addEventListener('change', ()=>tieYearStepFromStep(true));
   // ESOP slider label
-  const esopEl = document.getElementById('esop');
-  const esopPct = document.getElementById('esopPct');
-  esopEl.addEventListener('input', ()=>{ esopPct.textContent = esopEl.value+'%'; });
-
+  const esopEl = document.getElementById('esop'); const esopPct = document.getElementById('esopPct');
+  if (esopEl && esopPct){ esopEl.addEventListener('input', ()=>{ esopPct.textContent = esopEl.value+'%'; }); }
   // Calculate buttons
-  document.getElementById('calc').addEventListener('click', calcAnnual);
-  document.getElementById('ot-calc').addEventListener('click', calcVO);
-
+  document.getElementById('calc')?.addEventListener('click', calcAnnual);
+  document.getElementById('ot-calc')?.addEventListener('click', calcVO);
   // Initial state
   onSeatChange(false);
   onSeatChange(true);
   tieYearStepFromYear(false);
   tieYearStepFromYear(true);
-});
+}
+if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
