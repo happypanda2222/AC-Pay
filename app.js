@@ -1,4 +1,4 @@
-// AC Pay Calculator — iPhone v1.5
+// AC Pay Calculator — iPhone v1.6 (bugfix)
 const DOH = new Date('2024-08-07T00:00:00Z');
 const PROGRESSION = {m:11, d:10};  // Nov 10
 const SWITCH = {m:9, d:30};        // Sep 30
@@ -32,7 +32,6 @@ const PAY_TABLES = {
                 "737":{1:279.29,2:282.10,3:284.94,4:287.81,5:290.71,6:293.64,7:296.60,8:299.60,9:302.62,10:305.68,11:308.77,12:311.89},
                 "220":{1:273.88,2:276.63,3:279.41,4:282.23,5:285.07,6:287.95,7:290.85,8:293.79,9:296.76,10:299.75,11:302.78,12:305.84} }
 };
-
 // Append 2025 and 2026
 PAY_TABLES[2025] = { CA: { "777":{1:395.43,2:399.40,3:403.42,4:407.48,5:411.59,6:415.74,7:419.94,8:424.18,9:428.46,10:432.79,11:437.16,12:441.57},
                            "787":{1:363.44,2:367.09,3:370.78,4:374.52,5:378.29,6:382.10,7:385.96,8:389.86,9:393.79,10:397.77,11:401.79,12:405.85},
@@ -50,7 +49,7 @@ PAY_TABLES[2025] = { CA: { "777":{1:395.43,2:399.40,3:403.42,4:407.48,5:411.59,6
                            "220":{1:90.98,2:98.60,3:122.05,4:130.61,5:166.02,6:172.19,7:178.46,8:184.85,9:191.34,10:197.95,11:204.68,12:211.51} },
                     RP: { "777":{1:90.98,2:98.60,3:114.98,4:124.28,5:152.29,6:157.98,7:163.78,8:169.67,9:175.67,10:181.77,11:185.79,12:189.88},
                            "787":{1:90.98,2:98.60,3:105.67,4:114.23,5:139.97,6:145.20,7:150.52,8:155.94,9:161.46,10:167.06,11:170.76,12:174.51},
-                           "330":{1:90.98,2:98.60,3:103.64,4:112.03,5:137.28,6:142.41,7:147.63,8:152.95,9:158.35,10:163.86,11:167.48,12:171.16} }}
+                           "330":{1:90.98,2:98.60,3:103.64,4:112.03,5:137.28,6:142.41,7:147.63,8:152.95,9:158.35,10:163.86,11:167.48,12:171.16} }};
 
 PAY_TABLES[2026] = { CA: { "777":{1:411.26,2:415.39,3:419.57,4:423.80,5:428.07,6:432.39,7:436.75,8:441.16,9:445.61,10:450.11,11:454.66,12:459.25},
                            "787":{1:377.98,2:381.78,3:385.62,4:389.51,5:393.43,6:397.40,7:401.41,8:405.46,9:409.56,10:413.69,11:417.87,12:422.09},
@@ -58,7 +57,7 @@ PAY_TABLES[2026] = { CA: { "777":{1:411.26,2:415.39,3:419.57,4:423.80,5:428.07,6
                            "767":{1:347.39,2:350.88,3:354.41,4:357.98,5:361.58,6:365.23,7:368.92,8:372.64,9:376.40,10:380.21,11:384.05,12:387.92},
                            "320":{1:302.08,2:305.12,3:308.19,4:311.29,5:314.43,6:317.60,7:320.80,8:324.04,9:327.32,10:330.62,11:333.96,12:337.33},
                            "737":{1:302.08,2:305.12,3:308.19,4:311.29,5:314.43,6:317.60,7:320.80,8:324.04,9:327.32,10:330.62,11:333.96,12:337.33},
-                           "220":{1:296.23,2:299.20,3:302.21,4:305.26,5:308.33,6:311.44,7:314.58,8:317.76,9:320.97,10:324.21,11:327.49,12:330.79} }}
+                           "220":{1:296.23,2:299.20,3:302.21,4:305.26,5:308.33,6:311.44,7:314.58,8:317.76,9:320.97,10:324.21,11:327.49,12:330.79} };
 
 // Projections 2027–2031 from 2026 base
 const RAISES = {2027: 1.08, 2028: 1.08*1.04, 2029: 1.08*1.04*1.04, 2030: 1.08*1.04*1.04*1.04};
@@ -162,7 +161,7 @@ function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,provi
   const taxable = Math.max(0, gross - pension);
   const inQC = province==='QC';
   // CPP/QPP + EI
-  let cpp_base, cpp2, cpp_total, ei;
+  let cpp_base, cpp2, cpp_total;
   if (inQC){
     const pensionable = Math.max(0, Math.min(QPP.ympe, gross)-QPP.ybe);
     cpp_base = pensionable * QPP.rate_base_total;
@@ -177,22 +176,22 @@ function computeAnnual({seat,ac,year,stepInput,tieOn,xlrOn,avgMonthlyHours,provi
   cpp_total = cpp_base + cpp2;
   const ei_rate = inQC ? EI.rate_qc : EI.rate;
   const ei_max = inQC ? EI.max_prem_qc : EI.max_prem;
-  let ei = Math.min(gross, EI.mie)*ei_rate; ei = Math.min(ei, ei_max);
+  let eiPrem = Math.min(gross, EI.mie)*ei_rate; eiPrem = Math.min(eiPrem, ei_max);
   // Taxes + credits
-  const fed_tax = Math.max(0, taxFromBrackets(taxable, FED.brackets) - (0.145*federalBPA2025(taxable) + 0.15*(cpp_total+ei)));
+  const fed_tax = Math.max(0, taxFromBrackets(taxable, FED.brackets) - (0.145*federalBPA2025(taxable) + 0.15*(cpp_total+eiPrem)));
   const p = PROV[province];
   const prov_gross = taxFromBrackets(taxable, p.brackets);
   const prov_low = p.brackets[0][1];
-  const prov_tax = Math.max(0, prov_gross - (prov_low*p.bpa + prov_low*(cpp_total+ei)));
+  const prov_tax = Math.max(0, prov_gross - (prov_low*p.bpa + prov_low*(cpp_total+eiPrem)));
   const income_tax = fed_tax + prov_tax;
   // After-tax fixed + ESOP
   const annual_health = 58.80*12;
   const esop = Math.min((esopPct/100)*gross, 30000);
   const comb_top = topRate(taxable, FED.brackets) + topRate(taxable, p.brackets);
   const esop_match_net = 0.30*esop*(1-comb_top);
-  const net = gross - income_tax - cpp_total - ei - annual_health - esop + esop_match_net;
-  const monthly = {gross:gross/12, net:net/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:ei/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
-  return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
+  const net = gross - income_tax - cpp_total - eiPrem - annual_health - esop + esop_match_net;
+  const monthly = {gross:gross/12, net:net/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:eiPrem/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
+  return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei:eiPrem,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
 }
 
 // VO
@@ -235,21 +234,21 @@ const otCalcBtn = document.getElementById('ot-calc');
 
 // Tabs
 const btnAnnual = document.querySelector('.tabbtn[data-tab="annual"]');
-const btnOT = document.querySelector('.tabbtn[data-tab="vo"]');
+const btnVO = document.querySelector('.tabbtn[data-tab="vo"]');
 const tabAnnual = document.getElementById('tab-annual');
-const tabOT = document.getElementById('tab-vo');
+const tabVO = document.getElementById('tab-vo');
 
 function setActiveTab(which){
   if (which==='annual'){
-    btnAnnual.classList.add('active'); btnOT.classList.remove('active');
-    tabAnnual.classList.remove('hidden'); tabOT.classList.add('hidden');
+    btnAnnual.classList.add('active'); btnVO.classList.remove('active');
+    tabAnnual.classList.remove('hidden'); tabVO.classList.add('hidden');
   } else {
-    btnOT.classList.add('active'); btnAnnual.classList.remove('active');
-    tabOT.classList.remove('hidden'); tabAnnual.classList.add('hidden');
+    btnVO.classList.add('active'); btnAnnual.classList.remove('active');
+    tabVO.classList.remove('hidden'); tabAnnual.classList.add('hidden');
   }
 }
 btnAnnual.addEventListener('click', ()=>setActiveTab('annual'));
-btnOT.addEventListener('click', ()=>setActiveTab('vo'));
+btnVO.addEventListener('click', ()=>setActiveTab('vo'));
 
 function refreshAircraft(selectSeatEl, selectAcEl){
   const seat = selectSeatEl.value;
@@ -379,24 +378,10 @@ otCalcBtn.addEventListener('click', ()=>{
 });
 
 function init(){
-  function ensureInitial(selectAcEl, selectProvEl){
-    if (selectAcEl.options.length===0){
-      for (const a of AIRCRAFT_ORDER){
-        const opt=document.createElement('option'); opt.textContent=a; selectAcEl.appendChild(opt);
-      }
-      selectAcEl.value='320';
-    }
-    if (selectProvEl.options.length===0){
-      ['AB','BC','MB','NB','NL','NS','NT','NU','ON','PE','QC','SK','YT'].forEach(k=>{
-        const opt=document.createElement('option'); opt.value=k; opt.textContent=k; selectProvEl.appendChild(opt);
-      });
-      selectProvEl.value='MB';
-    }
-  }
   ensureInitial(acEl, provEl);
   ensureInitial(otAcEl, otProvEl);
-  // default ties
-  (function(){ const evt=new Event('change'); yearEl.dispatchEvent(evt);} )();
+  // initialize tie mapping once
+  tieYearStepFromYear();
 }
 if (document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded', init);
