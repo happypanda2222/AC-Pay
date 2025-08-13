@@ -276,37 +276,26 @@ function tieYearStepFromStep(isVO){
   const s = Math.max(1, Math.min(12, +stepEl.value));
   yearEl.value = String(Math.max(2023, Math.min(2031, 2024 + s)));
 }
+
 function renderAnnual(res, params){
   const out = document.getElementById('out');
-  const hdr = `${params.seat} · ${params.ac} · ${params.province} · ${params.year} · Step Jan 1=${res.step_jan1} · ESOP ${params.esopPct}% · ${(+params.avgMonthlyHours).toFixed(2)} hrs/mo · XLR ${params.xlrOn?'ON':'OFF'} · Tie ${params.tieOn?'ON':'OFF'}`;
-  const m = res.monthly;
-  const stat = (label, value, cls='') => `<div class="stat ${cls}"><h4>${label}</h4><div class="v">${value}</div></div>`;
   const money = v => '$'+(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  const statsHTML = `
-    <div class="sectionTitle">Annual</div>
-    <div class="stats">
-      ${stat('Gross', money(res.gross),'')}
-      ${stat('Net', money(res.net),'positive')}
-      ${stat('Income Tax', '-'+money(res.tax),'negative')}
-      ${stat('CPP/QPP + CPP2', '-'+money(res.cpp),'negative')}
-      ${stat('EI', '-'+money(res.ei),'negative')}
-      ${stat('Health', '-'+money(res.health),'negative')}
-      ${stat('Pension (pre-tax)', '-'+money(res.pension),'negative')}
-      ${stat('ESOP ('+params.esopPct+'%)', '-'+money(res.esop),'negative')}
-      ${stat('ESOP Match (net)', '+'+money(res.esop_match_after_tax),'positive')}
+  // Simple stacked blocks per request
+  const simpleHTML = `
+    <div class="simple">
+      <div class="block"><div class="label">Annual Gross</div><div class="value">${money(res.gross)}</div></div>
+      <div class="block"><div class="label">Annual Net</div><div class="value">${money(res.net)}</div></div>
+      <div class="block"><div class="label">Monthly Gross</div><div class="value">${money(res.monthly.gross)}</div></div>
+      <div class="block"><div class="label">Monthly Net</div><div class="value">${money(res.monthly.net)}</div></div>
+      <div class="block"><div class="label">Income Tax</div><div class="value">${money(res.tax)}</div></div>
+      <div class="block"><div class="label">CPP/QPP</div><div class="value">${money(res.cpp)}</div></div>
+      <div class="block"><div class="label">EI</div><div class="value">${money(res.ei)}</div></div>
+      <div class="block"><div class="label">Pension</div><div class="value">${money(res.pension)}</div></div>
+      <div class="block"><div class="label">ESOP Contributions</div><div class="value">${money(res.esop)}</div></div>
+      <div class="block"><div class="label">ESOP match (after tax)</div><div class="value">${money(res.esop_match_after_tax)}</div></div>
     </div>
-    <div class="sectionTitle">Monthly</div>
-    <div class="stats">
-      ${stat('Gross / mo', money(m.gross),'')}
-      ${stat('Net / mo', money(m.net),'positive')}
-      ${stat('Tax / mo', money(m.income_tax),'negative')}
-      ${stat('CPP/QPP / mo', money(m.cpp),'negative')}
-      ${stat('EI / mo', money(m.ei),'negative')}
-      ${stat('Health / mo', money(m.health),'negative')}
-      ${stat('Pension / mo', money(m.pension),'negative')}
-      ${stat('ESOP / mo', money(m.esop),'negative')}
-      ${stat('ESOP Match / mo', money(m.esop_match_net),'positive')}
-    </div>`;
+  `;
+  // Keep audit section exactly as before
   const auditRows = res.audit.map(seg=>{
     const fmt = d => d.toISOString().slice(0,10);
     return `<tr>
@@ -325,36 +314,7 @@ function renderAnnual(res, params){
       <thead><tr><th>Start</th><th>End</th><th>Tbl Yr</th><th>Step</th><th>Hourly</th><th>Hours</th><th>Gross</th></tr></thead>
       <tbody>${auditRows}</tbody>
     </table>`;
-  out.innerHTML = `<div class="hdr"><span class="pill">${hdr}</span></div>${statsHTML}${auditHTML}`;
-}
-  const m = res.monthly;
-  const header = params.seat+' · '+params.ac+' · '+params.province+' · Year '+params.year+' · Step Jan 1='+res.step_jan1+' · ESOP '+params.esopPct+'% · '+(+params.avgMonthlyHours).toFixed(2)+' hrs/mo · XLR '+(params.xlrOn?'ON':'OFF')+' · Tie '+(params.tieOn?'ON':'OFF');
-  const annual = [
-    'ANNUAL',
-    '  Gross              '+money(res.gross),
-    '  Pension (pre-tax) -'+money(res.pension),
-    '  Tax (fed+prov)    -'+money(res.tax),
-    '  CPP/QPP+CPP2      -'+money(res.cpp),
-    '  EI                -'+money(res.ei),
-    '  Health            -'+money(res.health),
-    '  ESOP ('+params.esopPct+'%)     -'+money(res.esop),
-    '  + ESOP match (net)+'+money(res.esop_match_after_tax),
-    '  NET                '+money(res.net)
-  ].join('\\n');
-  const monthly = [
-    'MONTHLY',
-    '  Gross '+money(m.gross),
-    '  Net   '+money(m.net),
-    '  Tax   '+money(m.income_tax)+'    CPP/QPP '+money(m.cpp)+'    EI '+money(m.ei),
-    '  Health '+money(m.health)+'    Pension '+money(m.pension),
-    '  ESOP '+money(m.esop)+'    ESOP match (net) '+money(m.esop_match_net)
-  ].join('\\n');
-  const auditLines = res.audit.map(seg => {
-    const fmt = d => d.toISOString().slice(0,10);
-    return '  '+fmt(seg.start)+' → '+fmt(seg.end)+' | tbl '+seg.pay_table_year+' | step '+String(seg.step).padStart(2,' ')+' | $'+seg.hourly.toFixed(2)+'/hr | '+seg.hours.toFixed(2)+' hrs | '+money(seg.segment_gross);
-  }).join('\\n');
-  const audit = 'AUDIT (date ranges)\\n'+auditLines;
-  document.getElementById('out').textContent = [header,'',annual,'',monthly,'',audit].join('\\n');
+  out.innerHTML = simpleHTML + auditHTML;
 }
 function renderVO(res, params){
   const out = document.getElementById('ot-out');
