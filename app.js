@@ -224,7 +224,7 @@ function computeAnnual(params){
   // Totals
   const annual_health = HEALTH_MO*12;
   const net = gross - income_tax - cpp_total - eiPrem - annual_health + esop + esop_match_net;
-  const monthly = {gross:gross/12, net:(net-(esop+esop_match_net))/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:eiPrem/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
+  const monthly = {gross:gross/12, net:(net-(esop-esop_match_net))/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:eiPrem/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
   return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei:eiPrem,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
 }
 
