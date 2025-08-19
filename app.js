@@ -279,6 +279,25 @@ const hapticTap = (() => {
     } catch(e){}
   };
 })();
+// ---- Union dues at 1.85% of gross, computed monthly ----
+function computeUnionDuesMonthly({ year, seat, ac, stepJan1, xlrOn, avgMonthlyHours }) {
+  const segs = yearSegments(year, stepJan1);
+  const dailyHours = avgMonthlyHours * 12 / 365.2425;
+  const monthsGross = new Array(12).fill(0);
+
+  for (let t = Date.UTC(year,0,1); t <= Date.UTC(year,11,31); t += 86400000) {
+    const day = new Date(t), m = day.getUTCMonth();
+    let py = year, st = stepJan1;
+    for (const s of segs) { if (day >= s.start && day <= s.end) { py = s.payYear; st = s.step; break; } }
+    const rate = rateFor(seat, ac, py, st, !!xlrOn);
+    monthsGross[m] += dailyHours * rate;
+  }
+
+  const duesByMonth = monthsGross.map(g => +(g * 0.0185).toFixed(2));
+  const annual = +(duesByMonth.reduce((a,b)=>a+b, 0).toFixed(2));
+  const avgMonthly = +(annual / 12).toFixed(2);
+  return { duesByMonth, annual, avgMonthly };
+}
 
 // --- Annual computation ---
 function computeAnnual(params){
@@ -331,9 +350,18 @@ const eiPrem    = ded.ei;
   // Approx combined top marginal for company match tax
   const comb_top = (function(){ let tr=0, found=false; for (let i=0;i<p.brackets.length;i++){ if (taxable<=p.brackets[i][0] && !found){ tr+=p.brackets[i][1]; found=true; } } for (let i=0;i<FED.brackets.length;i++){ if (taxable<=FED.brackets[i][0]){ tr+=FED.brackets[i][1]; break; } } return tr; })();
   const esop_match_net = 0.30*esop*(1-comb_top);
+  // Union dues (1.85% of gross) computed monthly
+const union = computeUnionDuesMonthly({
+  year,
+  seat,
+  ac,
+  stepJan1,
+  xlrOn: !!params.xlrOn,
+  avgMonthlyHours: +params.avgMonthlyHours
+});
   // Totals
   const annual_health = HEALTH_MO*12;
-  const net = gross - income_tax - cpp_total - eiPrem - annual_health + esop_match_net;
+  const net = gross - income_tax - cpp_total - eiPrem - annual_health - union.annual + esop_match_net;
   const monthly = {gross:gross/12, net:(net-esop-esop_match_net)/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:eiPrem/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
   return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei:eiPrem,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
 }
