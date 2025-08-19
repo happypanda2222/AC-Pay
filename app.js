@@ -581,3 +581,11 @@ function init(){
   tieYearStepFromYear(true);
 }
 if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+// PWA: register the service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch(() => { /* no-op */ });
+  });
+}
+
