@@ -488,10 +488,16 @@ function renderAnnual(res, params){
   }).join('');
   const auditHTML = `
     <div class="sectionTitle">Audit (date ranges)</div>
-    <table class="audit">
-      <thead><tr><th>Start</th><th>End</th><th>Tbl Yr</th><th>Step</th><th>Hourly</th><th>Hours</th><th>Gross</th></tr></thead>
-      <tbody>${auditRows}</tbody>
-    </table>`;
+    <div class="auditwrap">
+      <table class="audit">
+        <thead>
+          <tr>
+            <th>Start</th><th>End</th><th>Tbl Yr</th><th>Step</th><th>Hourly</th><th>Hours</th><th>Gross</th>
+          </tr>
+        </thead>
+        <tbody>${auditRows}</tbody>
+      </table>
+    </div>`;
   out.innerHTML = simpleHTML + auditHTML;
 }
 function renderVO(res, params){
