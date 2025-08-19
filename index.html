@@ -10,11 +10,6 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
   <title>AC Pay Calculator (iPhone)</title>
-  /* Prevent iOS auto-zoom on input focus (≥16px) */
-select, input { font-size: 16px; }
-
-/* Reduce unintended zoom/pan gestures */
-body { touch-action: manipulation; }
   <style>
     :root{ --bg:#0b0c0f; --card:#141825; --muted:#9aa3b2; --acc:#0a84ff; --txt:#e9edf1; --mono:"Menlo",monospace; }
     *{box-sizing:border-box}
@@ -86,6 +81,11 @@ body { touch-action: manipulation; }
   .audit{ min-width: 700px; }
   .audit th, .audit td{ font-size: 11px; }
 }
+    /* Prevent iOS auto-zoom on input focus (≥16px) */
+select, input { font-size: 16px; }
+
+/* Reduce unintended zoom/pan gestures */
+body { touch-action: manipulation; }
   </style>
 </head>
 <body>
