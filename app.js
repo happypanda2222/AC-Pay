@@ -123,6 +123,26 @@ function applyConservativeFOCompression() {
 
 // Call immediately after your projections builder has populated PAY_TABLES[2027..2031]
 applyConservativeFOCompression();
+// === Conservative RP1–4 discount compression for 2027–2031 ===
+// Discounts vs RP Step 5 on the same aircraft.
+const RP_EARLY_CONSERVATIVE = { 1: 0.42, 2: 0.35, 3: 0.22, 4: 0.15 };
+
+function applyConservativeRPCompression() {
+  const years = [2027, 2028, 2029, 2030, 2031];
+  years.forEach((y) => {
+    const rp = PAY_TABLES[y] && PAY_TABLES[y].RP;
+    if (!rp) return;
+    Object.keys(rp).forEach((ac) => {
+      const step5 = rp[ac][5];
+      if (!step5) return;
+      for (let s = 1; s <= 4; s++) {
+        const target = +(step5 * (1 - RP_EARLY_CONSERVATIVE[s])).toFixed(2);
+        rp[ac][s] = Math.max(rp[ac][s] || 0, target);
+      }
+    });
+  });
+}
+applyConservativeRPCompression();
 
 
 // --- 2025 Tax Data ---
