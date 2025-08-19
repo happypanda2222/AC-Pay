@@ -230,68 +230,69 @@ function yearSegments(year, stepJan1){
 function daysInclusive(a,b){ return Math.round((b-a)/86400000)+1; }
 function money(x){ return '$'+(x||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 // ---- CPP/QPP & EI precise daily caps ----
+// ---- CPP/QPP & EI precise daily caps (cumulative method) ----
 function computeCPP_EI_Daily({ year, seat, ac, stepJan1, xlrOn, avgMonthlyHours, province }) {
   const segs = yearSegments(year, stepJan1);
   const dailyHours = avgMonthlyHours * 12 / 365.2425;
+  const inQC = (province === 'QC');
 
   let cpp = 0, ei = 0;
-  let baseCPP = 0, baseCPP2 = 0, baseEI = 0;
-  const inQC = (province === 'QC');
+
+  // Cumulative earnings trackers (used to compute incremental eligible bases)
+  let cumGross = 0;           // cumulative pensionable/insurable gross
+  let cumEIBase = 0;          // EI base already counted
+  let cumBaseElig = 0;        // CPP/QPP Tier-1 eligible base counted (above YBE, up to YMPE)
+  let cumTier2Elig = 0;       // CPP2/QPP2 eligible base counted (between YMPE and YAMPE)
 
   for (let t = Date.UTC(year,0,1); t <= Date.UTC(year,11,31); t += 86400000) {
     const day = new Date(t);
-    // which pay table/step applies today
+
+    // Which pay table/step applies today
     let py = year, st = stepJan1;
     for (const s of segs) { if (day >= s.start && day <= s.end) { py = s.payYear; st = s.step; break; } }
     const rate = rateFor(seat, ac, py, st, !!xlrOn);
-    const g = dailyHours * rate;
+    const g = dailyHours * rate;           // today's gross
+    cumGross += g;
 
-    // EI
+    // --- EI (cap by MIE; incremental contribution on new eligible amount) ---
     {
       const ei_rate = inQC ? EI.rate_qc : EI.rate;
-      const ei_max  = inQC ? EI.max_prem_qc : EI.max_prem;
-      const roomEI  = Math.max(0, EI.mie - baseEI);
-      const addBase = Math.min(g, roomEI);
-      ei += addBase * ei_rate;
-      baseEI += addBase;
-      if (ei > ei_max) ei = ei_max;
+      const ei_maxPrem = inQC ? EI.max_prem_qc : EI.max_prem;
+      const eiEligibleToDate = Math.min(cumGross, EI.mie);
+      const addEIBase = Math.max(0, eiEligibleToDate - cumEIBase);
+      ei += addEIBase * ei_rate;
+      cumEIBase += addEIBase;
+      if (ei > ei_maxPrem) ei = ei_maxPrem; // rounding guard
     }
 
-    // CPP/QPP base + tier 2
+    // --- CPP/QPP base (Tier-1) & Tier-2 using cumulative windows ---
     if (inQC) {
-      // QPP base
-      const capBase = Math.max(0, QPP.ympe - QPP.ybe);
-      const roomB   = Math.max(0, capBase - baseCPP);
-      let addBase   = g;
-      if (baseCPP === 0) addBase = Math.max(0, g - QPP.ybe);  // apply YBE once
-      const useB    = Math.min(addBase, roomB);
-      cpp += useB * QPP.rate_base_total;
-      baseCPP += useB;
-      // QPP2
-      const cap2 = Math.max(0, QPP.yampe - QPP.ympe);
-      const room2 = Math.max(0, cap2 - baseCPP2);
-      const use2  = Math.min(g, room2);
-      cpp += use2 * QPP.rate_qpp2;
-      baseCPP2 += use2;
+      // QPP Tier-1: between YBE and YMPE
+      const baseEligToDate = Math.max(0, Math.min(cumGross, QPP.ympe) - QPP.ybe);
+      const addBase = Math.max(0, baseEligToDate - cumBaseElig);
+      cpp += addBase * QPP.rate_base_total;
+      cumBaseElig += addBase;
+
+      // QPP2: between YMPE and YAMPE
+      const tier2EligToDate = Math.max(0, Math.min(cumGross, QPP.yampe) - QPP.ympe);
+      const add2 = Math.max(0, tier2EligToDate - cumTier2Elig);
+      cpp += add2 * QPP.rate_qpp2;
+      cumTier2Elig += add2;
     } else {
-      // CPP base
-      const capBase = Math.max(0, CPP.ympe - CPP.ybe);
-      const roomB   = Math.max(0, capBase - baseCPP);
-      let addBase   = g;
-      if (baseCPP === 0) addBase = Math.max(0, g - CPP.ybe);  // apply YBE once
-      const useB    = Math.min(addBase, roomB);
-      cpp += useB * CPP.rate_base;
-      baseCPP += useB;
-      // CPP2
-      const cap2 = Math.max(0, CPP.yampe - CPP.ympe);
-      const room2 = Math.max(0, cap2 - baseCPP2);
-      const use2  = Math.min(g, room2);
-      cpp += use2 * CPP.rate_cpp2;
-      baseCPP2 += use2;
-      // safety cap against published maxima (rounding guard)
-      cpp = Math.min(cpp, CPP.max_base + CPP.max_cpp2);
+      // CPP Tier-1: between YBE and YMPE
+      const baseEligToDate = Math.max(0, Math.min(cumGross, CPP.ympe) - CPP.ybe);
+      const addBase = Math.max(0, baseEligToDate - cumBaseElig);
+      cpp += addBase * CPP.rate_base;
+      cumBaseElig += addBase;
+
+      // CPP2: between YMPE and YAMPE
+      const tier2EligToDate = Math.max(0, Math.min(cumGross, CPP.yampe) - CPP.ympe);
+      const add2 = Math.max(0, tier2EligToDate - cumTier2Elig);
+      cpp += add2 * CPP.rate_cpp2;
+      cumTier2Elig += add2;
     }
   }
+
   return { cpp_total: +cpp.toFixed(2), ei: +ei.toFixed(2) };
 }
 // ---- Best-effort haptic tap ----
