@@ -95,6 +95,36 @@ const PAY_TABLES = {
   });
 })();
 
+// === Conservative FO1–4 discount compression for 2027–2031 ===
+// Discounts are relative to FO Step 5 on the same aircraft.
+// Using conservative (status-quo leaning) values:
+//   FO1: 42%, FO2: 35%, FO3: 22%, FO4: 15%
+const FO_EARLY_CONSERVATIVE = { 1: 0.42, 2: 0.35, 3: 0.22, 4: 0.15 };
+
+function applyConservativeFOCompression() {
+  const years = [2027, 2028, 2029, 2030, 2031];
+  years.forEach((y) => {
+    const fo = PAY_TABLES[y] && PAY_TABLES[y].FO;
+    if (!fo) return;
+
+    Object.keys(fo).forEach((ac) => {
+      const step5 = fo[ac][5];
+      if (!step5) return;
+
+      // Recompute FO1–FO4 to target = (1 - discount) * Step5.
+      // Use Math.max to ensure we never reduce a value below the current projection.
+      for (let s = 1; s <= 4; s++) {
+        const target = +(step5 * (1 - FO_EARLY_CONSERVATIVE[s])).toFixed(2);
+        fo[ac][s] = Math.max(fo[ac][s] || 0, target);
+      }
+    });
+  });
+}
+
+// Call immediately after your projections builder has populated PAY_TABLES[2027..2031]
+applyConservativeFOCompression();
+
+
 // --- 2025 Tax Data ---
 const FED = { brackets:[[57375,0.145],[114750,0.205],[177882,0.26],[253414,0.29],[Infinity,0.33]],
               bpa_base:14538,bpa_additional:1591,bpa_addl_start:177882,bpa_addl_end:253414 };
