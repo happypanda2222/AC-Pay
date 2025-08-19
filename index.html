@@ -59,6 +59,33 @@ body { touch-action: manipulation; }
   100% { transform: scale(1); }
 }
 .haptic-tap { animation: tapPulse 120ms ease-out; }
+    /* Audit table: safe horizontal scroll on small screens */
+.auditwrap{
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #2a2f3b;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+/* Give the table a minimum width so columns don’t squish */
+.audit{
+  min-width: 760px; /* adjust if you prefer tighter */
+}
+
+/* Optional: sticky header while scrolling */
+.audit thead th{
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+}
+
+/* Slightly tighter on very small screens */
+@media (max-width: 420px){
+  .audit{ min-width: 700px; }
+  .audit th, .audit td{ font-size: 11px; }
+}
   </style>
 </head>
 <body>
