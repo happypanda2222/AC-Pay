@@ -1,4 +1,20 @@
 'use strict';
+// --- Lock zoom: block pinch & double-tap zoom (best-effort for iOS PWAs) ---
+(function preventZoom(){
+  const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+  // Pinch-zoom gestures (iOS Safari exposes these)
+  document.addEventListener('gesturestart', stop, {passive:false});
+  document.addEventListener('gesturechange', stop, {passive:false});
+  document.addEventListener('gestureend', stop, {passive:false});
+  // Double-tap zoom
+  let lastTouch = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouch < 300) { e.preventDefault(); }
+    lastTouch = now;
+  }, {passive:false});
+})();
+
 // --- Constants & Config ---
 const DOH = new Date('2024-08-07T00:00:00Z');
 const PROGRESSION = {m:11, d:10};
