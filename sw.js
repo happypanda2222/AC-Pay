@@ -1,13 +1,13 @@
 // sw.js
-const CACHE = 'acpay-v1'; // ⬅️ bump this (v2, v3, ...) whenever you change assets
+const CACHE = 'acpay-v2'; // ⬅️ bump this (v2, v3, ...) whenever you change assets
 const ASSETS = [
   './',
   './index.html',
   './app.js',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon-180.png'
+  './icons/icon-192-red.png',
+  './icons/icon-512-red.png',
+  './icons/apple-touch-icon-180-red.png'
 ];
 
 self.addEventListener('install', event => {
