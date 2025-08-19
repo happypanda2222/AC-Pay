@@ -258,6 +258,27 @@ function computeCPP_EI_Daily({ year, seat, ac, stepJan1, xlrOn, avgMonthlyHours,
   }
   return { cpp_total: +cpp.toFixed(2), ei: +ei.toFixed(2) };
 }
+// ---- Best-effort haptic tap ----
+const hapticTap = (() => {
+  let ac; // audio context
+  return (el) => {
+    try { if (navigator.vibrate) navigator.vibrate(10); } catch(e){}
+    // micro visual pulse
+    if (el) { el.classList.add('haptic-tap'); setTimeout(()=>el.classList.remove('haptic-tap'), 140); }
+    // tiny click
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = 'square';
+      o.frequency.value = 120;
+      g.gain.value = 0.02;
+      o.connect(g); g.connect(ac.destination);
+      o.start();
+      setTimeout(()=>o.stop(), 25);
+    } catch(e){}
+  };
+})();
 
 // --- Annual computation ---
 function computeAnnual(params){
