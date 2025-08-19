@@ -286,24 +286,18 @@ function computeAnnual(params){
   }
   const taxable = Math.max(0, gross - pension);
   const inQC = province==='QC';
-  // CPP/QPP
-  let cpp_base, cpp2;
-  if (inQC){
-    const pensionable = Math.max(0, Math.min(QPP.ympe, gross)-QPP.ybe);
-    cpp_base = pensionable * QPP.rate_base_total;
-    const qpp2_base = Math.max(0, Math.min(QPP.yampe, gross)-QPP.ympe);
-    cpp2 = qpp2_base * QPP.rate_qpp2;
-  } else {
-    const pensionable = Math.max(0, Math.min(CPP.ympe, gross)-CPP.ybe);
-    cpp_base = Math.min(pensionable * CPP.rate_base, CPP.max_base);
-    const cpp2_base = Math.max(0, Math.min(CPP.yampe, gross)-CPP.ympe);
-    cpp2 = Math.min(cpp2_base * CPP.rate_cpp2, CPP.max_cpp2);
-  }
-  const cpp_total = cpp_base + cpp2;
-  // EI
-  const ei_rate = inQC ? EI.rate_qc : EI.rate;
-  const ei_max = inQC ? EI.max_prem_qc : EI.max_prem;
-  const eiPrem = Math.min(Math.min(gross, EI.mie)*ei_rate, ei_max);
+  // Precise CPP/QPP & EI using daily caps
+const ded = computeCPP_EI_Daily({
+  year,
+  seat,
+  ac,
+  stepJan1,
+  xlrOn: !!params.xlrOn,
+  avgMonthlyHours: +params.avgMonthlyHours,
+  province
+});
+const cpp_total = ded.cpp_total;
+const eiPrem    = ded.ei;
   // Taxes with credits on lowest rates
   const fed_tax = Math.max(0, taxFromBrackets(taxable, FED.brackets) - (0.145*federalBPA2025(taxable) + 0.15*(cpp_total+eiPrem)));
   const p = PROV[province];
