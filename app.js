@@ -489,8 +489,8 @@ function calcVO(){
 // --- Init ---
 function init(){
   // Tabs
-  document.getElementById('tabbtn-annual')?.addEventListener('click', ()=>setActiveTab('annual'));
-  document.getElementById('tabbtn-vo')?.addEventListener('click', ()=>setActiveTab('vo'));
+  document.getElementById('tabbtn-annual')?.addEventListener('click', (e)=>{ hapticTap(e.currentTarget); setActiveTab('annual'); });
+  document.getElementById('tabbtn-vo')?.addEventListener('click', (e)=>{ hapticTap(e.currentTarget); setActiveTab('vo'); });
   // Dropdown behaviors
   document.getElementById('seat')?.addEventListener('change', ()=>onSeatChange(false));
   document.getElementById('ot-seat')?.addEventListener('change', ()=>onSeatChange(true));
@@ -502,8 +502,8 @@ function init(){
   const esopEl=document.getElementById('esop'); const esopPct=document.getElementById('esopPct');
   if (esopEl && esopPct){ esopEl.addEventListener('input', ()=>{ esopPct.textContent = esopEl.value+'%'; }); }
   // Buttons
-  document.getElementById('calc')?.addEventListener('click', calcAnnual);
-  document.getElementById('ot-calc')?.addEventListener('click', calcVO);
+  document.getElementById('calc')?.addEventListener('click', (e)=>{ hapticTap(e.currentTarget); calcAnnual(); });
+  document.getElementById('ot-calc')?.addEventListener('click', (e)=>{ hapticTap(e.currentTarget); calcVO(); });
   // Defaults
   onSeatChange(false);
   onSeatChange(true);
