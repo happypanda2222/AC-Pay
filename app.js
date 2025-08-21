@@ -102,7 +102,7 @@ const PAY_TABLES = {
 (function buildProjections(){
   const raises = {2027:1.12, 2028:1.12*1.04, 2029:1.12*1.04*1.04, 2030:1.12*1.04*1.04*1.04, 2031:1.12*1.04*1.04*1.04*1.04};
   [2027,2028,2029,2030,2031].forEach(y=>{
-    const factor = (y===2031)? raises[2030] : raises[y];
+    const factor = raises[y];
     const base = PAY_TABLES[2026];
     const proj = {}; for (const seat in base){ proj[seat]={}; for (const ac in base[seat]){
       proj[seat][ac]={}; for (const k in base[seat][ac]){ proj[seat][ac][k] = +(base[seat][ac][k]*factor).toFixed(2); }
