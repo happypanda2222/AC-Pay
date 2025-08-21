@@ -168,7 +168,6 @@ function applyFOSlopeAnchoredToCA12() {
 
 // Run after projections
 applyFOSlopeAnchoredToCA12();
-}
 
 // Call immediately after your projections builder has populated PAY_TABLES[2027..2031]
 applyConservativeFOCompression();
