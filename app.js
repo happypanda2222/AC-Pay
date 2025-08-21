@@ -111,63 +111,85 @@ const PAY_TABLES = {
   });
 })();
 
-// === FO slopes anchored to CA Step 12 (projected years 2027–2031) ===
-// Rules:
-//  - FO1 & FO2 remain flat across fleets (use the year’s flat values).
-//  - FO3, FO4, FO5 share the same multiplier (no discount on 3/4).
-//  - FO6..FO12 gently slope up, all as a fraction of CA12 for that fleet/year.
-//
-// Multipliers vs CA Step 12 (tuned “a bit closer” to US major slopes without being extreme):
-//   FO3=FO4=FO5: 0.58 × CA12
-//   FO6: 0.60, FO7: 0.62, FO8: 0.64, FO9: 0.66, FO10: 0.68, FO11: 0.69, FO12: 0.70
-const FO_MULT_CA12 = { 3:0.58, 4:0.58, 5:0.58, 6:0.60, 7:0.62, 8:0.64, 9:0.66, 10:0.68, 11:0.69, 12:0.70 };
+// === Projected 2027–2031: FO & RP anchored to CA Step 12 ===
+// Captain "composite" anchor interpreted as CA Step 12 on the same fleet/year.
+// FO1/FO2 remain flat across fleets (use the year's flat values as-is).
 
-function applyFOSlopeAnchoredToCA12() {
+const NB_FLEETS = new Set(['320','737','220']);           // narrow-body
+const WB_FLEETS = new Set(['777','787','330','767']);      // wide-body
+
+// FO % of CA12 (Years 3–12)
+const MULT_FO_NB = { // Narrow-body
+  3:0.50, 4:0.53, 5:0.56, 6:0.58, 7:0.60, 8:0.615, 9:0.63, 10:0.645, 11:0.66, 12:0.68
+};
+const MULT_FO_WB = { // Wide-body
+  3:0.48, 4:0.51, 5:0.545, 6:0.565, 7:0.585, 8:0.60, 9:0.615, 10:0.63, 11:0.65, 12:0.67
+};
+
+// RP % of CA12 (Years 3–12; all fleets)
+const MULT_RP_ALL = {
+  3:0.35, 4:0.38, 5:0.41, 6:0.43, 7:0.45, 8:0.465, 9:0.48, 10:0.49, 11:0.495, 12:0.50
+};
+
+function applyAnchoredSlopesFO_RP() {
   const YEARS = [2027, 2028, 2029, 2030, 2031];
-
   YEARS.forEach((y) => {
     const yr = PAY_TABLES[y];
-    if (!yr || !yr.FO || !yr.CA) return;
+    if (!yr || !yr.CA) return;
 
-    // 1) Capture the year’s *flat* FO1/FO2 (from any AC) so we can enforce uniformity across fleets.
-    const acKeys = Object.keys(yr.FO);
-    if (!acKeys.length) return;
-    const sample = yr.FO[acKeys[0]] || {};
-    const flatFO1 = sample[1];
-    const flatFO2 = sample[2];
+    // Use the year's FO1/FO2 (flat) from any AC to enforce uniformity
+    let flatFO1, flatFO2;
+    if (yr.FO) {
+      const ac0 = Object.keys(yr.FO)[0];
+      if (ac0) {
+        flatFO1 = yr.FO[ac0][1];
+        flatFO2 = yr.FO[ac0][2];
+      }
+    }
 
-    // 2) Walk fleets and set FO3..FO12 relative to CA12 for that fleet/year.
-    acKeys.forEach((ac) => {
-      const foTable = yr.FO[ac];            // FO steps object
-      const caTable = yr.CA[ac];            // CA steps object
-      if (!foTable || !caTable) return;
+    for (const ac of Object.keys(yr.CA)) {
+      const ca = yr.CA[ac]; if (!ca || !ca[12]) continue;
+      const ca12 = ca[12];
 
-      const ca12 = caTable[12];
-      if (!ca12) return;
+      // ---- FO (anchor to CA12 with NB/WB slopes) ----
+      if (yr.FO && yr.FO[ac]) {
+        const fo = yr.FO[ac];
 
-      // Preserve FO1/FO2 flat across fleets.
-      if (typeof flatFO1 === 'number') foTable[1] = flatFO1;
-      if (typeof flatFO2 === 'number') foTable[2] = flatFO2;
+        // Keep FO1/FO2 flat across fleets
+        if (typeof flatFO1 === 'number') fo[1] = flatFO1;
+        if (typeof flatFO2 === 'number') fo[2] = flatFO2;
 
-      // Apply CA12-anchored multipliers for FO3..FO12.
-      for (let s = 3; s <= 12; s++) {
-        const m = FO_MULT_CA12[s];
-        if (!m) continue;
-        const target = +(ca12 * m).toFixed(2);
-        // Only raise (never lower) any prior values from projections or other rules.
-        foTable[s] = Math.max(foTable[s] || 0, target);
+        const map = NB_FLEETS.has(ac) ? MULT_FO_NB : MULT_FO_WB;
+        for (let s = 3; s <= 12; s++) {
+          const m = map[s]; if (!m) continue;
+          const target = +(ca12 * m).toFixed(2);
+          // Only raise (never lower) any prior projection
+          fo[s] = Math.max(fo[s] || 0, target);
+        }
+        // Monotonic guard
+        for (let s = 2; s <= 12; s++) {
+          if (fo[s] < fo[s-1]) fo[s] = fo[s-1];
+        }
       }
 
-      // Guard: ensure monotonic non-decreasing FO table (step to step)
-      for (let s = 3; s <= 12; s++) {
-        if (foTable[s] < foTable[s-1]) foTable[s] = foTable[s-1];
+      // ---- RP (anchor to CA12; same curve for all fleets) ----
+      if (yr.RP && yr.RP[ac]) {
+        const rp = yr.RP[ac];
+        for (let s = 3; s <= 12; s++) {
+          const m = MULT_RP_ALL[s]; if (!m) continue;
+          const target = +(ca12 * m).toFixed(2);
+          rp[s] = Math.max(rp[s] || 0, target);
+        }
+        for (let s = 2; s <= 12; s++) {
+          if (rp[s] < rp[s-1]) rp[s] = rp[s-1];
+        }
       }
-    });
+    }
   });
 }
 
 // Run after projections
-applyFOSlopeAnchoredToCA12();
+applyAnchoredSlopesFO_RP();
 
 // === Conservative RP1–4 discount compression for 2027–2031 ===
 // Discounts vs RP Step 5 on the same aircraft.
