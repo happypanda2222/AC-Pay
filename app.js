@@ -169,8 +169,6 @@ function applyFOSlopeAnchoredToCA12() {
 // Run after projections
 applyFOSlopeAnchoredToCA12();
 
-// Call immediately after your projections builder has populated PAY_TABLES[2027..2031]
-applyConservativeFOCompression();
 // === Conservative RP1–4 discount compression for 2027–2031 ===
 // Discounts vs RP Step 5 on the same aircraft.
 const RP_EARLY_CONSERVATIVE = { 1: 0.42, 2: 0.35, 3: 0.22, 4: 0.15 };
@@ -394,19 +392,20 @@ function computeAnnual(params){
     const dayPay = dailyHours*rate; pension += dayPay*pct;
   }
   const taxable = Math.max(0, gross - pension);
-  const inQC = province==='QC';
+
   // Precise CPP/QPP & EI using daily caps
-const ded = computeCPP_EI_Daily({
-  year,
-  seat,
-  ac,
-  stepJan1,
-  xlrOn: !!params.xlrOn,
-  avgMonthlyHours: +params.avgMonthlyHours,
-  province
-});
-const cpp_total = ded.cpp_total;
-const eiPrem    = ded.ei;
+  const ded = computeCPP_EI_Daily({
+    year,
+    seat,
+    ac,
+    stepJan1,
+    xlrOn: !!params.xlrOn,
+    avgMonthlyHours: +params.avgMonthlyHours,
+    province
+  });
+  const cpp_total = ded.cpp_total;
+  const eiPrem    = ded.ei;
+
   // Taxes with credits on lowest rates
   const fed_tax = Math.max(0, taxFromBrackets(taxable, FED.brackets) - (0.145*federalBPA2025(taxable) + 0.15*(cpp_total+eiPrem)));
   const p = PROV[province];
@@ -414,25 +413,53 @@ const eiPrem    = ded.ei;
   const prov_low = p.brackets[0][1];
   const prov_tax = Math.max(0, prov_gross - (prov_low*p.bpa + prov_low*(cpp_total+eiPrem)));
   const income_tax = fed_tax + prov_tax;
-  // ESOP
+
+  // ESOP and match (approx. after-tax value using combined marginal rate at taxable)
   const esop = Math.min((+params.esopPct/100)*gross, 30000);
-  // Approx combined top marginal for company match tax
-  const comb_top = (function(){ let tr=0, found=false; for (let i=0;i<p.brackets.length;i++){ if (taxable<=p.brackets[i][0] && !found){ tr+=p.brackets[i][1]; found=true; } } for (let i=0;i<FED.brackets.length;i++){ if (taxable<=FED.brackets[i][0]){ tr+=FED.brackets[i][1]; break; } } return tr; })();
-  const esop_match_net = 0.30*esop*(1-comb_top);
+  const comb_top = marginalRate(taxable, FED.brackets) + marginalRate(taxable, p.brackets);
+  const esop_match_net = +(0.30*esop*(1 - comb_top)).toFixed(2);
+
   // Union dues (1.85% of gross) computed monthly
-const union = computeUnionDuesMonthly({
-  year,
-  seat,
-  ac,
-  stepJan1,
-  xlrOn: !!params.xlrOn,
-  avgMonthlyHours: +params.avgMonthlyHours
-});
+  const union = computeUnionDuesMonthly({
+    year,
+    seat,
+    ac,
+    stepJan1,
+    xlrOn: !!params.xlrOn,
+    avgMonthlyHours: +params.avgMonthlyHours
+  });
+
   // Totals
   const annual_health = HEALTH_MO*12;
   const net = gross - income_tax - cpp_total - eiPrem - annual_health - union.annual + esop_match_net;
-  const monthly = {gross:gross/12, net:(net-esop-esop_match_net)/12, income_tax:income_tax/12, cpp:cpp_total/12, ei:eiPrem/12, health:annual_health/12, pension:pension/12, esop:esop/12, esop_match_net:esop_match_net/12};
-  return {audit,gross,net,tax:income_tax,cpp:cpp_total,ei:eiPrem,health:annual_health,pension,esop,esop_match_after_tax:esop_match_net,monthly, step_jan1:stepJan1};
+
+  const monthly = {
+    gross: +(gross/12).toFixed(2),
+    net: +((net - esop - esop_match_net)/12).toFixed(2), // take-home excluding ESOP and match
+    income_tax: +(income_tax/12).toFixed(2),
+    cpp: +(cpp_total/12).toFixed(2),
+    ei: +(eiPrem/12).toFixed(2),
+    health: +(annual_health/12).toFixed(2),
+    pension: +(pension/12).toFixed(2),
+    esop: +(esop/12).toFixed(2),
+    esop_match_after_tax: +(esop_match_net/12).toFixed(2),
+    union_dues: +(union.annual/12).toFixed(2)
+  };
+
+  return {
+    audit,
+    gross:+gross.toFixed(2),
+    net:+net.toFixed(2),
+    tax:+income_tax.toFixed(2),
+    cpp:+cpp_total.toFixed(2),
+    ei:+eiPrem.toFixed(2),
+    health:+annual_health.toFixed(2),
+    pension:+pension.toFixed(2),
+    esop:+esop.toFixed(2),
+    esop_match_after_tax:+esop_match_net.toFixed(2),
+    monthly,
+    step_jan1:stepJan1
+  };
 }
 
 // --- VO computation ---
@@ -621,4 +648,3 @@ if ('serviceWorker' in navigator) {
       .catch(() => { /* no-op */ });
   });
 }
-
