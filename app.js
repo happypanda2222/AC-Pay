@@ -111,30 +111,63 @@ const PAY_TABLES = {
   });
 })();
 
-// === Conservative FO1–4 discount compression for 2027–2031 ===
-// Discounts are relative to FO Step 5 on the same aircraft.
-// Using conservative (status-quo leaning) values:
-//   FO1: 42%, FO2: 35%, FO3: 22%, FO4: 15%
-const FO_EARLY_CONSERVATIVE = { 1: 0.42, 2: 0.35, 3: 0.22, 4: 0.15 };
+// === FO slopes anchored to CA Step 12 (projected years 2027–2031) ===
+// Rules:
+//  - FO1 & FO2 remain flat across fleets (use the year’s flat values).
+//  - FO3, FO4, FO5 share the same multiplier (no discount on 3/4).
+//  - FO6..FO12 gently slope up, all as a fraction of CA12 for that fleet/year.
+//
+// Multipliers vs CA Step 12 (tuned “a bit closer” to US major slopes without being extreme):
+//   FO3=FO4=FO5: 0.58 × CA12
+//   FO6: 0.60, FO7: 0.62, FO8: 0.64, FO9: 0.66, FO10: 0.68, FO11: 0.69, FO12: 0.70
+const FO_MULT_CA12 = { 3:0.58, 4:0.58, 5:0.58, 6:0.60, 7:0.62, 8:0.64, 9:0.66, 10:0.68, 11:0.69, 12:0.70 };
 
-function applyConservativeFOCompression() {
-  const years = [2027, 2028, 2029, 2030, 2031];
-  years.forEach((y) => {
-    const fo = PAY_TABLES[y] && PAY_TABLES[y].FO;
-    if (!fo) return;
+function applyFOSlopeAnchoredToCA12() {
+  const YEARS = [2027, 2028, 2029, 2030, 2031];
 
-    Object.keys(fo).forEach((ac) => {
-      const step5 = fo[ac][5];
-      if (!step5) return;
+  YEARS.forEach((y) => {
+    const yr = PAY_TABLES[y];
+    if (!yr || !yr.FO || !yr.CA) return;
 
-      // Recompute FO1–FO4 to target = (1 - discount) * Step5.
-      // Use Math.max to ensure we never reduce a value below the current projection.
-      for (let s = 1; s <= 4; s++) {
-        const target = +(step5 * (1 - FO_EARLY_CONSERVATIVE[s])).toFixed(2);
-        fo[ac][s] = Math.max(fo[ac][s] || 0, target);
+    // 1) Capture the year’s *flat* FO1/FO2 (from any AC) so we can enforce uniformity across fleets.
+    const acKeys = Object.keys(yr.FO);
+    if (!acKeys.length) return;
+    const sample = yr.FO[acKeys[0]] || {};
+    const flatFO1 = sample[1];
+    const flatFO2 = sample[2];
+
+    // 2) Walk fleets and set FO3..FO12 relative to CA12 for that fleet/year.
+    acKeys.forEach((ac) => {
+      const foTable = yr.FO[ac];            // FO steps object
+      const caTable = yr.CA[ac];            // CA steps object
+      if (!foTable || !caTable) return;
+
+      const ca12 = caTable[12];
+      if (!ca12) return;
+
+      // Preserve FO1/FO2 flat across fleets.
+      if (typeof flatFO1 === 'number') foTable[1] = flatFO1;
+      if (typeof flatFO2 === 'number') foTable[2] = flatFO2;
+
+      // Apply CA12-anchored multipliers for FO3..FO12.
+      for (let s = 3; s <= 12; s++) {
+        const m = FO_MULT_CA12[s];
+        if (!m) continue;
+        const target = +(ca12 * m).toFixed(2);
+        // Only raise (never lower) any prior values from projections or other rules.
+        foTable[s] = Math.max(foTable[s] || 0, target);
+      }
+
+      // Guard: ensure monotonic non-decreasing FO table (step to step)
+      for (let s = 3; s <= 12; s++) {
+        if (foTable[s] < foTable[s-1]) foTable[s] = foTable[s-1];
       }
     });
   });
+}
+
+// Run after projections
+applyFOSlopeAnchoredToCA12();
 }
 
 // Call immediately after your projections builder has populated PAY_TABLES[2027..2031]
